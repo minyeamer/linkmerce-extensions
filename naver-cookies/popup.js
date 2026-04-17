@@ -3,45 +3,45 @@
 const $ = id => document.getElementById(id);
 
 // DOM 참조
-const sendBtn              = $('sendBtn');
-const refreshBtn           = $('refreshBtn');
-const lastRunStatus        = $('lastRunStatus');
-const slackToken           = $('slackToken');
-const slackChannel         = $('slackChannel');
-const slackFilename        = $('slackFilename');
-const statusBadge          = $('statusBadge');
+const sendBtn = $('sendBtn');
+const refreshBtn = $('refreshBtn');
+const lastRunStatus = $('lastRunStatus');
+const slackToken = $('slackToken');
+const slackChannel = $('slackChannel');
+const slackFilename = $('slackFilename');
+const statusBadge = $('statusBadge');
 
 // 전송 스케줄
-const sendScheduleEnabled  = $('sendScheduleEnabled');
-const sendScheduleBody     = $('sendScheduleBody');
-const modeIntervalBtn      = $('modeIntervalBtn');
-const modeTimesBtn         = $('modeTimesBtn');
-const sendIntervalPanel    = $('sendIntervalPanel');
-const sendTimesPanel       = $('sendTimesPanel');
-const sendIntervalInput    = $('sendIntervalInput');
-const sendBaseTimeInput    = $('sendBaseTimeInput');
-const sendIntervalCron     = $('sendIntervalCron');
-const sendTimeTags         = $('sendTimeTags');
-const sendNewTimeInput     = $('sendNewTimeInput');
-const sendAddTimeBtn       = $('sendAddTimeBtn');
-const sendAlarmInfo        = $('sendAlarmInfo');
+const sendScheduleEnabled = $('sendScheduleEnabled');
+const sendScheduleBody = $('sendScheduleBody');
+const modeIntervalBtn = $('modeIntervalBtn');
+const modeTimesBtn = $('modeTimesBtn');
+const sendIntervalPanel = $('sendIntervalPanel');
+const sendTimesPanel = $('sendTimesPanel');
+const sendIntervalInput = $('sendIntervalInput');
+const sendBaseTimeInput = $('sendBaseTimeInput');
+const sendIntervalCron = $('sendIntervalCron');
+const sendTimeTags = $('sendTimeTags');
+const sendNewTimeInput = $('sendNewTimeInput');
+const sendAddTimeBtn = $('sendAddTimeBtn');
+const sendAlarmInfo = $('sendAlarmInfo');
 
 // 새로고침 스케줄
-const refreshEnabled       = $('refreshEnabled');
+const refreshEnabled = $('refreshEnabled');
 const refreshIntervalInput = $('refreshIntervalInput');
 const refreshBaseTimeInput = $('refreshBaseTimeInput');
-const refreshIntervalCron  = $('refreshIntervalCron');
-const refreshAlarmInfo     = $('refreshAlarmInfo');
+const refreshIntervalCron = $('refreshIntervalCron');
+const refreshAlarmInfo = $('refreshAlarmInfo');
 
 // 설정 저장/불러오기
-const exportConfigBtn      = $('exportConfigBtn');
-const importConfigBtn      = $('importConfigBtn');
-const importConfigInput    = $('importConfigInput');
-const configMsg            = $('configMsg');
+const exportConfigBtn = $('exportConfigBtn');
+const importConfigBtn = $('importConfigBtn');
+const importConfigInput = $('importConfigInput');
+const configMsg = $('configMsg');
 
-let _slackConfig        = { token: '', channel: '', filename: '' };
+let _slackConfig = { token: '', channel: '', filename: '' };
 let _sendScheduleConfig = { enabled: false, mode: 'interval', intervalMinutes: 1440, baseTime: '00:00', times: [] };
-let _refreshScheduleConfig      = { enabled: false, intervalMinutes: 30, baseTime: '00:00' };
+let _refreshScheduleConfig = { enabled: false, intervalMinutes: 30, baseTime: '00:00' };
 
 /**
  * 숫자를 2자리 문자열로 패딩한다.
@@ -91,9 +91,9 @@ function updateRefreshIntervalCron() {
 function setBadge(text, color) {
   statusBadge.textContent = text;
   const colors = {
-    green:  'rgba(3,199,90,0.3)',
+    green: 'rgba(3,199,90,0.3)',
     orange: 'rgba(255,165,0,0.3)',
-    red:    'rgba(231,76,60,0.3)',
+    red: 'rgba(231,76,60,0.3)',
   };
   statusBadge.style.background = colors[color] || 'rgba(255,255,255,0.2)';
 }
@@ -109,17 +109,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (slackRes?.config) {
     _slackConfig = slackRes.config;
-    slackToken.value    = _slackConfig.token    || '';
-    slackChannel.value  = _slackConfig.channel  || '';
-    slackFilename.value = _slackConfig.filename  || '';
+    slackToken.value = _slackConfig.token || '';
+    slackChannel.value = _slackConfig.channel || '';
+    slackFilename.value = _slackConfig.filename || '';
   }
 
   if (sendRes?.config) {
     _sendScheduleConfig = sendRes.config;
     sendScheduleEnabled.checked = _sendScheduleConfig.enabled;
     applyModeUI(_sendScheduleConfig.mode || 'interval');
-    sendIntervalInput.value    = _sendScheduleConfig.intervalMinutes || 1440;
-    sendBaseTimeInput.value    = _sendScheduleConfig.baseTime || '00:00';
+    sendIntervalInput.value = _sendScheduleConfig.intervalMinutes || 1440;
+    sendBaseTimeInput.value = _sendScheduleConfig.baseTime || '00:00';
     updateSendPresetBtns(_sendScheduleConfig.intervalMinutes);
     updateSendIntervalCron();
     renderSendTimes();
@@ -127,9 +127,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (refreshRes?.config) {
     _refreshScheduleConfig = refreshRes.config;
-    refreshEnabled.checked       = _refreshScheduleConfig.enabled;
-    refreshIntervalInput.value   = _refreshScheduleConfig.intervalMinutes || 30;
-    refreshBaseTimeInput.value   = _refreshScheduleConfig.baseTime || '00:00';
+    refreshEnabled.checked = _refreshScheduleConfig.enabled;
+    refreshIntervalInput.value = _refreshScheduleConfig.intervalMinutes || 30;
+    refreshBaseTimeInput.value = _refreshScheduleConfig.baseTime || '00:00';
     updateRefreshPresetBtns(_refreshScheduleConfig.intervalMinutes);
     updateRefreshIntervalCron();
   }
@@ -146,9 +146,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 function applyModeUI(mode) {
   const isInterval = mode === 'interval';
   sendIntervalPanel.style.display = isInterval ? '' : 'none';
-  sendTimesPanel.style.display    = isInterval ? 'none' : '';
-  modeIntervalBtn.classList.toggle('mode-tab-active',  isInterval);
-  modeTimesBtn.classList.toggle('mode-tab-active',    !isInterval);
+  sendTimesPanel.style.display = isInterval ? 'none' : '';
+  modeIntervalBtn.classList.toggle('mode-tab-active', isInterval);
+  modeTimesBtn.classList.toggle('mode-tab-active', !isInterval);
 }
 
 modeIntervalBtn.addEventListener('click', () => {
@@ -177,7 +177,7 @@ document.querySelectorAll('#sendIntervalPanel .preset-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const val = Number(btn.dataset.value);
     _sendScheduleConfig.intervalMinutes = val;
-    sendIntervalInput.value            = val;
+    sendIntervalInput.value = val;
     updateSendPresetBtns(val);
     updateSendIntervalCron();
     saveSendScheduleConfig();
@@ -186,7 +186,7 @@ document.querySelectorAll('#sendIntervalPanel .preset-btn').forEach(btn => {
 
 sendIntervalInput.addEventListener('change', () => {
   const val = Math.max(5, Number(sendIntervalInput.value) || 1440);
-  sendIntervalInput.value            = val;
+  sendIntervalInput.value = val;
   _sendScheduleConfig.intervalMinutes = val;
   updateSendPresetBtns(val);
   updateSendIntervalCron();
@@ -258,7 +258,7 @@ document.querySelectorAll('#refreshBody .preset-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     const val = Number(btn.dataset.value);
     _refreshScheduleConfig.intervalMinutes = val;
-    refreshIntervalInput.value     = val;
+    refreshIntervalInput.value = val;
     updateRefreshPresetBtns(val);
     updateRefreshIntervalCron();
     saveRefreshScheduleConfig();
@@ -267,7 +267,7 @@ document.querySelectorAll('#refreshBody .preset-btn').forEach(btn => {
 
 refreshIntervalInput.addEventListener('change', () => {
   const val = Math.max(5, Number(refreshIntervalInput.value) || 30);
-  refreshIntervalInput.value     = val;
+  refreshIntervalInput.value = val;
   _refreshScheduleConfig.intervalMinutes = val;
   updateRefreshPresetBtns(val);
   updateRefreshIntervalCron();
@@ -303,8 +303,8 @@ slackFilename.addEventListener('change', saveSlackConfig);
  */
 async function saveSlackConfig() {
   _slackConfig = {
-    token:    slackToken.value.trim(),
-    channel:  slackChannel.value.trim(),
+    token: slackToken.value.trim(),
+    channel: slackChannel.value.trim(),
     filename: slackFilename.value.trim(),
   };
   await chrome.runtime.sendMessage({ action: 'saveSlackConfig', config: _slackConfig });
@@ -335,13 +335,13 @@ async function refreshAlarmDisplay() {
 
 // 수동 전송
 sendBtn.addEventListener('click', async () => {
-  sendBtn.disabled    = true;
+  sendBtn.disabled = true;
   sendBtn.textContent = '⏳ 추출 중...';
   setBadge('실행중', 'orange');
 
   const res = await chrome.runtime.sendMessage({ action: 'extractAndSend' });
 
-  sendBtn.disabled    = false;
+  sendBtn.disabled = false;
   sendBtn.textContent = '🚀 추출 & 전송';
 
   if (res.success) {
@@ -355,13 +355,13 @@ sendBtn.addEventListener('click', async () => {
 
 // 수동 새로고침
 refreshBtn.addEventListener('click', async () => {
-  refreshBtn.disabled    = true;
+  refreshBtn.disabled = true;
   refreshBtn.textContent = '⏳ 새로고침 중...';
   setBadge('새로고침', 'orange');
 
   const res = await chrome.runtime.sendMessage({ action: 'refreshOnly' });
 
-  refreshBtn.disabled    = false;
+  refreshBtn.disabled = false;
   refreshBtn.textContent = '🔄 새로고침만';
 
   if (res.success) {
@@ -383,16 +383,16 @@ exportConfigBtn.addEventListener('click', async () => {
     const res = await chrome.runtime.sendMessage({ action: 'getAllSettings' });
     if (!res?.success) throw new Error(res?.error || '설정 읽기 실패');
 
-    const json  = JSON.stringify(res.settings, null, 2);
-    const blob  = new Blob([json], { type: 'application/json' });
-    const url   = URL.createObjectURL(blob);
-    const now   = new Date();
-    const ts    = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate())
+    const json = JSON.stringify(res.settings, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const ts = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate())
                 + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
     const fname = `naver-cookies-config_${ts}.json`;
-    const a     = document.createElement('a');
-    a.href      = url;
-    a.download  = fname;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fname;
     a.click();
     URL.revokeObjectURL(url);
     showConfigMsg(`✅ 내보내기 완료: ${fname}`, 'success');
@@ -410,7 +410,7 @@ importConfigInput.addEventListener('change', async (e) => {
   importConfigInput.value = '';
 
   try {
-    const text     = await file.text();
+    const text = await file.text();
     const settings = JSON.parse(text);
     if (typeof settings !== 'object' || Array.isArray(settings)) {
       throw new Error('올바른 설정 파일이 아닙니다');
@@ -421,26 +421,26 @@ importConfigInput.addEventListener('change', async (e) => {
 
     // UI 즉시 반영
     if (settings.slackConfig) {
-      _slackConfig        = settings.slackConfig;
-      slackToken.value    = _slackConfig.token    || '';
-      slackChannel.value  = _slackConfig.channel  || '';
-      slackFilename.value = _slackConfig.filename  || '';
+      _slackConfig = settings.slackConfig;
+      slackToken.value = _slackConfig.token || '';
+      slackChannel.value = _slackConfig.channel || '';
+      slackFilename.value = _slackConfig.filename || '';
     }
     if (settings.sendScheduleConfig) {
       _sendScheduleConfig = settings.sendScheduleConfig;
-      sendScheduleEnabled.checked  = _sendScheduleConfig.enabled;
+      sendScheduleEnabled.checked = _sendScheduleConfig.enabled;
       applyModeUI(_sendScheduleConfig.mode || 'interval');
-      sendIntervalInput.value      = _sendScheduleConfig.intervalMinutes || 1440;
-      sendBaseTimeInput.value      = _sendScheduleConfig.baseTime || '00:00';
+      sendIntervalInput.value = _sendScheduleConfig.intervalMinutes || 1440;
+      sendBaseTimeInput.value = _sendScheduleConfig.baseTime || '00:00';
       updateSendPresetBtns(_sendScheduleConfig.intervalMinutes);
       updateSendIntervalCron();
       renderSendTimes();
     }
     if (settings.refreshScheduleConfig) {
       _refreshScheduleConfig = settings.refreshScheduleConfig;
-      refreshEnabled.checked      = _refreshScheduleConfig.enabled;
-      refreshIntervalInput.value  = _refreshScheduleConfig.intervalMinutes || 30;
-      refreshBaseTimeInput.value  = _refreshScheduleConfig.baseTime || '00:00';
+      refreshEnabled.checked = _refreshScheduleConfig.enabled;
+      refreshIntervalInput.value = _refreshScheduleConfig.intervalMinutes || 30;
+      refreshBaseTimeInput.value = _refreshScheduleConfig.baseTime || '00:00';
       updateRefreshPresetBtns(_refreshScheduleConfig.intervalMinutes);
       updateRefreshIntervalCron();
     }
@@ -485,7 +485,7 @@ function showLastRun(run) {
  * @param {'success'|'error'|string} type - 메시지 유형
  */
 function showConfigMsg(msg, type) {
-  configMsg.textContent  = msg;
+  configMsg.textContent = msg;
   configMsg.style.display = 'block';
-  configMsg.className    = 'mt6 ' + (type === 'success' ? 'status-success' : type === 'error' ? 'status-error' : 'text-muted');
+  configMsg.className = 'mt6 ' + (type === 'success' ? 'status-success' : type === 'error' ? 'status-error' : 'text-muted');
 }

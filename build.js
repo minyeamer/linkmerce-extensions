@@ -1,6 +1,6 @@
 /**
  * build.js
- * 각 확장 프로그램의 소스를 난독화·압축하여 dist/<이름>/ 에 출력한다.
+ * 각 확장 프로그램의 소스를 난독화, 압축하여 dist/<이름>/ 에 출력한다.
  *
  * 사전 준비:
  *   npm install                   # 최초 1회 의존 패키지 설치
@@ -11,11 +11,11 @@
  *   node build.js naver-products  # naver-products 빌드
  *
  * 처리 내용:
- *   JS   : javascript-obfuscator (난독화 + 코드 압축)
- *   HTML  : html-minifier-terser  (공백/주석 제거)
- *   CSS   : clean-css             (공백/주석 제거)
- *   JSON  : JSON.parse+stringify  (공백 제거)
- *   그 외 : 파일 그대로 복사
+ *   JS: javascript-obfuscator (난독화 + 코드 압축)
+ *   HTML: html-minifier-terser (공백/주석 제거)
+ *   CSS: clean-css (공백/주석 제거)
+ *   JSON: JSON.parse+stringify (공백 제거)
+ *   그 외: 파일 그대로 복사
  */
 
 'use strict';
@@ -180,7 +180,7 @@ async function processDir(srcDir, destDir) {
   try {
     await processDir(srcDir, destDir);
 
-    const srcTotal  = totalSize(srcDir);
+    const srcTotal = totalSize(srcDir);
     const destTotal = totalSize(destDir);
     console.log(`\n원본: ${kb(srcTotal)} → 빌드: ${kb(destTotal)} (${((destTotal / srcTotal - 1) * 100).toFixed(0)}%)`);
     console.log('=== 빌드 완료 ===');

@@ -255,7 +255,7 @@ async function resumeCollection(payload) {
 // 쿼리 목록 순차 수집
 
 /**
- * 쿼리 목록을 순차적으로 수집하고 결과를 누적·저장한다.
+ * 쿼리 목록을 순차적으로 수집하고 결과를 누적 및 저장한다.
  * @param {string[]} queries - 검색할 키워드 목록
  * @param {object} settings - 수집 설정(딜레이, 최대 페이지 등)
  * @param {number} startIndex - 수집을 시작할 쿼리 인덱스

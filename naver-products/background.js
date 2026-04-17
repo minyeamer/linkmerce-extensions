@@ -118,7 +118,7 @@
 class SpecialStatusError extends Error {
   constructor(status, productUrl, data) {
     super('special_status:' + status);
-    this.specialStatus = status;  // 'paused' | 'deleted' | 'soldout'
+    this.specialStatus = status; // 'paused' | 'deleted' | 'soldout'
     this.productUrl = productUrl;
     this.data = data || null;
   }
@@ -136,7 +136,7 @@ function nextRuleId() {
 }
 
 // 상수
-const DEFAULT_DELAY = 2000;  // 기본 상품 간 대기 (ms)
+const DEFAULT_DELAY = 2000; // 기본 상품 간 대기 (ms)
 const API_TIMEOUT = 15000;
 
 // 요청 간 랜덤 지연 (설정으로 변경 가능, 기본값 ms)
@@ -144,7 +144,7 @@ let _delayMin = 1200;
 let _delayMax = 2200;
 
 // captcha 감지/해결 대기
-const CAPTCHA_WAIT = 30000;   // 30초
+const CAPTCHA_WAIT = 30000; // 30초
 const CAPTCHA_RETRY_WAIT = 300000; // 5분
 const MAX_RETRY_COUNT = 3;
 
@@ -222,13 +222,13 @@ async function getPersistedChannelInfo(storeSlug) {
 //
 // PAC script를 사용하여 naver.com 도메인만 프록시 경유, 나머지는 DIRECT
 
-let _proxyList = [];   // { host, port, username, password }
-let _proxyIndex = 0;    // 현재 사용 중인 프록시 인덱스
+let _proxyList = []; // { host, port, username, password }
+let _proxyIndex = 0; // 현재 사용 중인 프록시 인덱스
 let _proxyEnabled = false;
-let _proxyRotateInterval = 0;  // N 요청마다 IP 교체 (0 = 비활성)
-let _proxyErrorThreshold = 3;  // N번 오류 시 IP 교체
-let _proxyRequestCount = 0;  // 현재 IP로 처리한 요청 수
-let _proxyErrorCount = 0;  // 현재 IP로 발생한 오류 수
+let _proxyRotateInterval = 0; // N 요청마다 IP 교체 (0 = 비활성)
+let _proxyErrorThreshold = 3; // N번 오류 시 IP 교체
+let _proxyRequestCount = 0; // 현재 IP로 처리한 요청 수
+let _proxyErrorCount = 0; // 현재 IP로 발생한 오류 수
 
 /**
  * chrome.storage.local의 proxyConfig를 읽어 프록시 런타임 변수를 초기화한다.
@@ -279,7 +279,7 @@ function getCurrentProxy() {
 
 /**
  * 프록시를 다음 항목으로 순환 교체하고 PAC 스크립트를 다시 적용한다.
- * 프록시가 1개를 1개면 실제 교체 없이 카운터만 리셋한다.
+ * 프록시가 1개도이면 실제 교체 없이 카운터만 리셋한다.
  * @returns {Promise<boolean>} 실제 교체 여부
  */
 async function switchToNextProxy() {
@@ -307,8 +307,8 @@ async function switchToNextProxy() {
 }
 
 /**
- * 네이버 도메인만 프록시를 경유하는 PAC 스크립트 문자열을 생성다.
- * @param {{host: string, port: number}|null} proxy - 프록시 정보, null이면 DIRECT 실도 반환
+ * 네이버 도메인만 프록시를 경유하는 PAC 스크립트 문자열을 생성한다.
+ * @param {{host: string, port: number}|null} proxy - 프록시 정보, null이면 DIRECT도 반환
  * @returns {string} PAC 스크립트 문자열
  */
 function buildPacScript(proxy) {
@@ -336,7 +336,7 @@ function buildPacScript(proxy) {
 }
 
 /**
- * 현재 프록시 를 PAC 스크립트로 Chrome에 적용한다. 프록시가 비활성화상태면 시스템 설정으로 복원한다.
+ * 현재 프록시를 PAC 스크립트로 Chrome에 적용한다. 프록시가 비활성화 상태면 시스템 설정으로 복원한다.
  * @returns {Promise<void>}
  */
 async function applyCurrentProxy() {
@@ -453,12 +453,12 @@ async function runCollection(urls, urlSource) {
       + (_proxyErrorThreshold > 0 ? ' / 오류:' + _proxyErrorThreshold : '');
   }
   if (exportSettings.autoExport) state.autoExport = (exportSettings.format || 'csv').toUpperCase();
-  if (scheduleConfig.enabled)    state.schedule = scheduleConfig.time;
-  if (slackConfig.enabled)       state.slack = slackConfig.channel;
+  if (scheduleConfig.enabled) state.schedule = scheduleConfig.time;
+  if (slackConfig.enabled) state.slack = slackConfig.channel;
   console.log('[BG] 수집 시작', state);
 
   // 결과를 분류 저장할 구조
-  const results = new Array(urls.length).fill(null);  // index별 {product, options, supplements}
+  const results = new Array(urls.length).fill(null); // index별 {product, options, supplements}
   const queue = urls.map((url, index) => ({ url, index, attempt: 0, nextRetryAt: 0 }));
   let completed = 0;
 
@@ -468,8 +468,8 @@ async function runCollection(urls, urlSource) {
     for (let i = 0; i < results.length; i++) {
       if (!results[i]) continue;
       out.products.push(results[i].product);
-      if (results[i].options)      out.options = out.options.concat(results[i].options);
-      if (results[i].supplements)  out.supplements = out.supplements.concat(results[i].supplements);
+      if (results[i].options) out.options = out.options.concat(results[i].options);
+      if (results[i].supplements) out.supplements = out.supplements.concat(results[i].supplements);
     }
     return out;
   }
@@ -504,11 +504,11 @@ async function runCollection(urls, urlSource) {
         console.log('[BG] 삭제 캐시 히트 → 즉시 deleted: ' + url);
         results[task.index] = {
           product: {
-            productId:    cachedProductId,
-            productNo:    cachedProductId,
-            productUrl:   url,
-            status:       'deleted',
-            timestamp:    new Date().toISOString()
+            productId: cachedProductId,
+            productNo: cachedProductId,
+            productUrl: url,
+            status: 'deleted',
+            timestamp: new Date().toISOString()
           },
           options: [],
           supplements: []
@@ -535,30 +535,30 @@ async function runCollection(urls, urlSource) {
           const pno = d?.productNo ? String(d.productNo) : pid;
           results[task.index] = {
             product: {
-              productId:           pid,
-              productNo:           pno,
-              mallNo:              d?.mallNo       != null ? d.mallNo : null,
-              mallName:            d?.channelName  || d?.storeName   || null,
-              channelId:           d?.channelId    != null ? String(d.channelId) : null,
-              channelName:         d?.channelName  || d?.storeName   || null,
-              brandId:             d?.brandId      != null ? String(d.brandId)   : null,
-              brandName:           d?.brandName    || null,
-              categoryId:          d?.categoryId   || null,
-              categoryName:        d?.categoryName || null,
-              productName:         d?.name         || null,
-              price:               d?.salePrice    != null ? d.salePrice : null,
-              salesPrice:          d?.discountedSalePrice != null ? d.discountedSalePrice : (d?.salePrice != null ? d.salePrice : null),
-              stockQuantity:       d?.stockQuantity != null ? d.stockQuantity : null,
-              reviewCount:         null,
-              reviewScore:         null,
-              soldout:             err.specialStatus === 'soldout' ? true : null,
-              status:              err.specialStatus,  // 'paused' | 'deleted' | 'soldout'
-              deliveryType:        d?.deliveryType || null,
-              wholeCategoryId:     d?.wholeCategoryId   || null,
-              wholeCategoryName:   d?.wholeCategoryName || null,
-              productUrl:          url,
-              channelUid:          d?.channelUid   || null,
-              timestamp:           new Date().toISOString()
+              productId: pid,
+              productNo: pno,
+              mallNo: d?.mallNo != null ? d.mallNo : null,
+              mallName: d?.channelName || d?.storeName || null,
+              channelId: d?.channelId != null ? String(d.channelId) : null,
+              channelName: d?.channelName || d?.storeName || null,
+              brandId: d?.brandId != null ? String(d.brandId) : null,
+              brandName: d?.brandName || null,
+              categoryId: d?.categoryId || null,
+              categoryName: d?.categoryName || null,
+              productName: d?.name || null,
+              price: d?.salePrice != null ? d.salePrice : null,
+              salesPrice: d?.discountedSalePrice != null ? d.discountedSalePrice : (d?.salePrice != null ? d.salePrice : null),
+              stockQuantity: d?.stockQuantity != null ? d.stockQuantity : null,
+              reviewCount: null,
+              reviewScore: null,
+              soldout: err.specialStatus === 'soldout' ? true : null,
+              status: err.specialStatus, // 'paused' | 'deleted' | 'soldout'
+              deliveryType: d?.deliveryType || null,
+              wholeCategoryId: d?.wholeCategoryId || null,
+              wholeCategoryName: d?.wholeCategoryName || null,
+              productUrl: url,
+              channelUid: d?.channelUid || null,
+              timestamp: new Date().toISOString()
             },
             options: [],
             supplements: []
@@ -624,18 +624,18 @@ async function runCollection(urls, urlSource) {
   try {
     const { exportSettings = {} } = await chrome.storage.local.get('exportSettings');
     if (exportSettings.autoExport && finalResults.products.length > 0) {
-      const fmt = exportSettings.format        || 'csv';
-      const prefixProd = exportSettings.prefix        || '네이버상품';
-      const prefixOpt = exportSettings.prefixOption  || '네이버옵션';
+      const fmt = exportSettings.format || 'csv';
+      const prefixProd = exportSettings.prefix || '네이버상품';
+      const prefixOpt = exportSettings.prefixOption || '네이버옵션';
       const prefixSup = exportSettings.prefixSupplement || '네이버추가상품';
       const ts = buildTimestamp();
 
       if (fmt === 'json') {
         const fname = prefixProd + '_' + ts + '.json';
         const dataUrl = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
-          products:     finalResults.products.map(sortResultKeys),
-          options:      finalResults.options,
-          supplements:  finalResults.supplements
+          products: finalResults.products.map(sortResultKeys),
+          options: finalResults.options,
+          supplements: finalResults.supplements
         }, null, 2));
         await chrome.downloads.download({ url: dataUrl, filename: fname, saveAs: false });
         console.log('[BG] 자동 내보내기 완료: ' + fname);
@@ -700,17 +700,17 @@ async function handleMessage(request) {
       await chrome.storage.local.set({ collectionResults: { products: [], options: [], supplements: [] } });
       return { success: true };
 
-    case 'downloadCSV':  // 하위 호환 유지
+    case 'downloadCSV': // 하위 호환 유지
     case 'exportData': {
       const { collectionResults = { products: [], options: [], supplements: [] } } = await chrome.storage.local.get('collectionResults');
-      const safeProducts = (collectionResults.products     || []).filter(Boolean);
-      const safeOptions = (collectionResults.options      || []).filter(Boolean);
-      const safeSupplements = (collectionResults.supplements  || []).filter(Boolean);
+      const safeProducts = (collectionResults.products || []).filter(Boolean);
+      const safeOptions = (collectionResults.options || []).filter(Boolean);
+      const safeSupplements = (collectionResults.supplements || []).filter(Boolean);
       if (!safeProducts.length) return { success: false, error: '데이터 없음' };
 
-      const format = request.format          || 'csv';
-      const prefixProd = request.prefix           || '네이버상품';
-      const prefixOpt = request.prefixOption     || '네이버옵션';
+      const format = request.format || 'csv';
+      const prefixProd = request.prefix || '네이버상품';
+      const prefixOpt = request.prefixOption || '네이버옵션';
       const prefixSup = request.prefixSupplement || '네이버추가상품';
       const ts = buildTimestamp();
       const filenames = [];
@@ -718,9 +718,9 @@ async function handleMessage(request) {
       if (format === 'json') {
         const fname = prefixProd + '_' + ts + '.json';
         const dataUrl = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify({
-          products:     safeProducts.map(sortResultKeys),
-          options:      safeOptions,
-          supplements:  safeSupplements
+          products: safeProducts.map(sortResultKeys),
+          options: safeOptions,
+          supplements: safeSupplements
         }, null, 2));
         await chrome.downloads.download({ url: dataUrl, filename: fname, saveAs: false });
         filenames.push(fname);
@@ -780,15 +780,15 @@ async function handleMessage(request) {
     case 'getProxyStatus': {
       const proxy = getCurrentProxy();
       return {
-        success:         true,
-        enabled:         _proxyEnabled,
-        total:           _proxyList.length,
-        current:         _proxyIndex % Math.max(_proxyList.length, 1),
-        host:            proxy ? proxy.host + ':' + proxy.port : null,
-        requestCount:    _proxyRequestCount,
-        errorCount:      _proxyErrorCount,
-        rotateInterval:  _proxyRotateInterval,
-        errorThreshold:  _proxyErrorThreshold
+        success: true,
+        enabled: _proxyEnabled,
+        total: _proxyList.length,
+        current: _proxyIndex % Math.max(_proxyList.length, 1),
+        host: proxy ? proxy.host + ':' + proxy.port : null,
+        requestCount: _proxyRequestCount,
+        errorCount: _proxyErrorCount,
+        rotateInterval: _proxyRotateInterval,
+        errorThreshold: _proxyErrorThreshold
       };
     }
 
@@ -839,15 +839,15 @@ async function handleMessage(request) {
       const keys = ['proxyConfig', 'exportSettings', 'delayConfig', 'scheduleConfig', 'slackConfig', 'defaultFilePath'];
       const stored = await chrome.storage.local.get(keys);
       return {
-        success:  true,
+        success: true,
         settings: {
-          _version:        '3.4.8',
-          _exportedAt:     new Date().toISOString(),
-          proxyConfig:     stored.proxyConfig     || { enabled: false, proxies: [] },
-          exportSettings:  stored.exportSettings  || {},
-          delayConfig:     stored.delayConfig     || { min: 1200, max: 2200 },
-          scheduleConfig:  stored.scheduleConfig  || { enabled: false, time: '09:00' },
-          slackConfig:     stored.slackConfig     || { enabled: false, token: '', channel: '' },
+          _version: '3.4.8',
+          _exportedAt: new Date().toISOString(),
+          proxyConfig: stored.proxyConfig || { enabled: false, proxies: [] },
+          exportSettings: stored.exportSettings || {},
+          delayConfig: stored.delayConfig || { min: 1200, max: 2200 },
+          scheduleConfig: stored.scheduleConfig || { enabled: false, time: '09:00' },
+          slackConfig: stored.slackConfig || { enabled: false, token: '', channel: '' },
           defaultFilePath: stored.defaultFilePath || ''
         }
       };
@@ -858,11 +858,11 @@ async function handleMessage(request) {
       // _version / _exportedAt 은 메타데이터이므로 저장 제외
       const s = request.settings || {};
       const toSave = {};
-      if (s.proxyConfig)    toSave.proxyConfig = s.proxyConfig;
+      if (s.proxyConfig) toSave.proxyConfig = s.proxyConfig;
       if (s.exportSettings) toSave.exportSettings = s.exportSettings;
-      if (s.delayConfig)    toSave.delayConfig = s.delayConfig;
+      if (s.delayConfig) toSave.delayConfig = s.delayConfig;
       if (s.scheduleConfig) toSave.scheduleConfig = s.scheduleConfig;
-      if (s.slackConfig)    toSave.slackConfig = s.slackConfig;
+      if (s.slackConfig) toSave.slackConfig = s.slackConfig;
       // defaultFilePath만 저장 (defaultFileName/defaultFileContent는 파일 선택 시 갱신)
       if (s.defaultFilePath !== undefined) toSave.defaultFilePath = s.defaultFilePath;
       await chrome.storage.local.set(toSave);
@@ -872,7 +872,7 @@ async function handleMessage(request) {
         _proxyEnabled = !!c.enabled;
         _proxyList = Array.isArray(c.proxies) ? c.proxies : [];
         _proxyIndex = 0;
-        _proxyRotateInterval = c.rotateInterval  || 0;
+        _proxyRotateInterval = c.rotateInterval || 0;
         _proxyErrorThreshold = (c.errorThreshold != null && c.errorThreshold >= 0) ? c.errorThreshold : 3;
         _proxyRequestCount = 0;
         _proxyErrorCount = 0;
@@ -914,8 +914,8 @@ async function extractProduct(productUrl) {
     if (!channelInfo || !channelInfo.channelUid) throw new Error('channelUid 획득 실패');
 
     const channelUid = channelInfo.channelUid;
-    const cacheChannelId = channelInfo.channelId  || null;
-    const cacheMallSeq = channelInfo.mallSeq    != null ? channelInfo.mallSeq : null;
+    const cacheChannelId = channelInfo.channelId || null;
+    const cacheMallSeq = channelInfo.mallSeq != null ? channelInfo.mallSeq : null;
 
     await sleep(500);
 
@@ -981,24 +981,24 @@ async function extractProduct(productUrl) {
     const apiSpecialStatus = detectSpecialStatusFromType(apiProductStatus);
     if (apiSpecialStatus) {
       throw new SpecialStatusError(apiSpecialStatus, productUrl, {
-        id:                apiData.id           || extractProductNoFromUrl(productUrl),
-        channelUid:        apiData.channelUid   || channelUid,
-        channelId:         apiData.channelId    || (apiData.channel && apiData.channel.channelNo) || cacheChannelId || null,
-        channelName:       apiData.channelName  || (apiData.channel && apiData.channel.channelName) || channelInfo.channelName || null,
-        mallNo:            apiData.mallNo       != null ? apiData.mallNo : (cacheMallSeq ?? null),
-        brandId:           apiData.brandId      != null ? String(apiData.brandId) : null,
-        brandName:         apiData.brandName    || null,
-        storeName:         (apiData.channel && apiData.channel.channelName) || channelInfo.channelName || null,
+        id: apiData.id || extractProductNoFromUrl(productUrl),
+        channelUid: apiData.channelUid || channelUid,
+        channelId: apiData.channelId || (apiData.channel && apiData.channel.channelNo) || cacheChannelId || null,
+        channelName: apiData.channelName || (apiData.channel && apiData.channel.channelName) || channelInfo.channelName || null,
+        mallNo: apiData.mallNo != null ? apiData.mallNo : (cacheMallSeq ?? null),
+        brandId: apiData.brandId != null ? String(apiData.brandId) : null,
+        brandName: apiData.brandName || null,
+        storeName: (apiData.channel && apiData.channel.channelName) || channelInfo.channelName || null,
         productStatusType: apiProductStatus,
-        stockQuantity:     apiData.stockQuantity != null ? apiData.stockQuantity : null,
-        categoryId:        (apiData.category && apiData.category.categoryId)        || null,
-        categoryName:      (apiData.category && apiData.category.categoryName)       || null,
-        wholeCategoryId:   (apiData.category && apiData.category.wholeCategoryId)    || null,
-        wholeCategoryName: (apiData.category && apiData.category.wholeCategoryName)  || null,
-        deliveryType:      (apiData.productDeliveryInfo && apiData.productDeliveryInfo.deliveryAttributeType) || null,
-        name:              apiData.name      || null,
-        salePrice:         apiData.salePrice != null ? apiData.salePrice : null,
-        productNo:         apiData.productNo || apiData.id || null
+        stockQuantity: apiData.stockQuantity != null ? apiData.stockQuantity : null,
+        categoryId: (apiData.category && apiData.category.categoryId) || null,
+        categoryName: (apiData.category && apiData.category.categoryName) || null,
+        wholeCategoryId: (apiData.category && apiData.category.wholeCategoryId) || null,
+        wholeCategoryName: (apiData.category && apiData.category.wholeCategoryName) || null,
+        deliveryType: (apiData.productDeliveryInfo && apiData.productDeliveryInfo.deliveryAttributeType) || null,
+        name: apiData.name || null,
+        salePrice: apiData.salePrice != null ? apiData.salePrice : null,
+        productNo: apiData.productNo || apiData.id || null
       });
     }
 
@@ -1033,11 +1033,11 @@ function detectSpecialStatusFromType(productStatusType) {
  */
 function isNonCaptchaError(err) {
   const msg = err.message || '';
-  return msg.includes('JSON') ||            // Unexpected end of JSON input 등
-    msg.includes('Failed to fetch') ||      // 네트워크 단절
+  return msg.includes('JSON') || // Unexpected end of JSON input 등
+    msg.includes('Failed to fetch') || // 네트워크 단절
     msg.includes('NetworkError') ||
     msg.includes('타임아웃') ||
-    msg.includes('상품 데이터 획득 실패');  // 4단계 모두 실패
+    msg.includes('상품 데이터 획득 실패'); // 4단계 모두 실패
 }
 
 /**
@@ -1124,7 +1124,7 @@ async function handleCaptchaForUrl(productUrl) {
 }
 
 /**
- * 탭이 특정 상태가 될 때까지 최대 timeoutMs만크 대기한다.
+ * 탭이 특정 상태가 될 때까지 최대 timeoutMs만큼 대기한다.
  * @param {number} tabId - 대기할 탭 ID
  * @param {number} timeoutMs - 최대 대기 시간 (ms)
  * @returns {Promise<void>}
@@ -1148,7 +1148,7 @@ function waitForTabLoad(tabId, timeoutMs) {
 }
 
 /**
- * 탭의 현재 URL과 DOM을 스캔해 쮡차 여부와 상품 페이지 여부를 판별한다.
+ * 탭의 현재 URL과 DOM을 스캔해 캡챠 여부와 상품 페이지 여부를 판별한다.
  * @param {number} tabId - 확인할 탭 ID
  * @returns {Promise<{isCaptcha: boolean, isProduct: boolean}>} 페이지 상태
  */
@@ -1176,10 +1176,10 @@ async function getPageStatus(tabId) {
 }
 
 /**
- * timeoutMs 안에 쮡차가 해결되어 상품 페이지가 로드될 때까지 1초마다 야백한다.
- * @param {number} tabId - 쮡차가 표시된 탭 ID
+ * timeoutMs 안에 캡챠가 해결되어 상품 페이지가 로드될 때까지 1초마다 폴링한다.
+ * @param {number} tabId - 캡챠가 표시된 탭 ID
  * @param {number} timeoutMs - 최대 대기 시간 (ms)
- * @returns {Promise<boolean>} 쮡차 해결 여부
+ * @returns {Promise<boolean>} 캡챠 해결 여부
  */
 async function waitForCaptchaResolution(tabId, timeoutMs) {
   const deadline = Date.now() + timeoutMs;
@@ -1209,9 +1209,9 @@ async function getUAInfo() {
     return { brands: brands, fullBrands: fullBrands, platform: ua.platform || 'Windows' };
   } catch (e) {
     return {
-      brands:     '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+      brands: '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
       fullBrands: '"Chromium";v="124.0.6367.82", "Google Chrome";v="124.0.6367.82", "Not-A.Brand";v="99.0.0.0"',
-      platform:   'Windows'
+      platform: 'Windows'
     };
   }
 }
@@ -1239,9 +1239,9 @@ async function getChannelInfo(storeType, storeSlug, uaInfo, cookieStr) {
     const entry = cache[storeSlug];
     if (entry && entry.channelUid) {
       const info = {
-        channelUid:  entry.channelUid,
-        channelId:   entry.channelId  || String(entry.channelNo || ''),
-        mallSeq:     entry.mallSeq    != null ? entry.mallSeq : null,
+        channelUid: entry.channelUid,
+        channelId: entry.channelId || String(entry.channelNo || ''),
+        mallSeq: entry.mallSeq != null ? entry.mallSeq : null,
         channelName: entry.channelName || storeSlug
       };
       _channelInfoCache[storeSlug] = info;
@@ -1286,7 +1286,7 @@ async function getChannelInfo(storeType, storeSlug, uaInfo, cookieStr) {
 }
 
 /**
- * 채널 정보 API를 호출해 channelUid를 포함한 채널 정보를 대치한다.
+ * 채널 정보 API를 호출해 channelUid를 포함한 채널 정보를 반환한다.
  * SmartStore: /i/v1/smart-stores?url= → json.channel, BrandStore: /n/v1/channels?brandUrl= → json 최상위
  * @param {'smartstore'|'brand'} storeType - 스토어 종류
  * @param {string} storeSlug - 스토어 슬러그
@@ -1340,9 +1340,9 @@ async function fetchChannelInfo(storeType, storeSlug, uaInfo, isMobile, cookieSt
     if (!ch || !ch.channelUid) return null;
 
     return {
-      channelUid:  ch.channelUid,
-      channelId:   ch.id         != null ? String(ch.id)         : String(ch.channelNo  || ch.accountNo || ''),
-      mallSeq:     ch.mallSeq    != null ? ch.mallSeq            : (ch.brandMallSeq != null ? ch.brandMallSeq : null),
+      channelUid: ch.channelUid,
+      channelId: ch.id != null ? String(ch.id) : String(ch.channelNo || ch.accountNo || ''),
+      mallSeq: ch.mallSeq != null ? ch.mallSeq : (ch.brandMallSeq != null ? ch.brandMallSeq : null),
       channelName: ch.channelName || ch.brandStoreName || storeSlug
     };
   } finally {
@@ -1404,7 +1404,7 @@ async function fetchProductData(storeType, storeSlug, productId, channelUid, uaI
  * Referer, Cookie, Sec-Ch-Ua 등 실제 브라우저 요청과 동일한 헤더를 주입한다.
  * @param {number} ruleId - 동적 규칙 ID (31~50)
  * @param {string} urlFilter - 규칙을 적용할 URL 필터
- * @param {string} referer - 주입할 Referer 에더넷 값
+ * @param {string} referer - 주입할 Referer 헤더 값
  * @param {{brands: string, fullBrands: string, platform: string}} uaInfo - User-Agent 정보
  * @param {boolean} isMobile - 모바일 UA 적용 여부
  * @param {string|null} cookieStr - 주입할 Cookie 헤더 값
@@ -1414,18 +1414,18 @@ async function setDynamicRule(ruleId, urlFilter, referer, uaInfo, isMobile, cook
   const secChUaMobile = isMobile ? '?1' : '?0';
 
   const requestHeaders = [
-    { header: 'Accept',             operation: 'set',    value: 'application/json, text/plain, */*' },
-    { header: 'Accept-Encoding',    operation: 'set',    value: 'gzip, deflate, br, zstd' },
-    { header: 'Accept-Language',    operation: 'set',    value: 'ko,en-US;q=0.9,en;q=0.8,ko-KR;q=0.7' },
-    { header: 'Sec-Ch-Ua',          operation: 'set',    value: uaInfo.brands },
-    { header: 'Sec-Ch-Ua-Mobile',   operation: 'set',    value: secChUaMobile },
+    { header: 'Accept', operation: 'set', value: 'application/json, text/plain, */*' },
+    { header: 'Accept-Encoding', operation: 'set', value: 'gzip, deflate, br, zstd' },
+    { header: 'Accept-Language', operation: 'set', value: 'ko,en-US;q=0.9,en;q=0.8,ko-KR;q=0.7' },
+    { header: 'Sec-Ch-Ua', operation: 'set', value: uaInfo.brands },
+    { header: 'Sec-Ch-Ua-Mobile', operation: 'set', value: secChUaMobile },
     // 아이템스카우트 원문: `"${n.platform}"` → 따옴표 포함
-    { header: 'Sec-Ch-Ua-Platform', operation: 'set',    value: '"' + uaInfo.platform + '"' },
-    { header: 'Sec-Fetch-Site',     operation: 'set',    value: 'same-origin' },
-    { header: 'Sec-Fetch-Mode',     operation: 'set',    value: 'cors' },
-    { header: 'Sec-Fetch-Dest',     operation: 'set',    value: 'empty' },
-    { header: 'Referer',            operation: 'set',    value: referer },
-    { header: 'priority',           operation: 'set',    value: 'u=1, i' }
+    { header: 'Sec-Ch-Ua-Platform', operation: 'set', value: '"' + uaInfo.platform + '"' },
+    { header: 'Sec-Fetch-Site', operation: 'set', value: 'same-origin' },
+    { header: 'Sec-Fetch-Mode', operation: 'set', value: 'cors' },
+    { header: 'Sec-Fetch-Dest', operation: 'set', value: 'empty' },
+    { header: 'Referer', operation: 'set', value: referer },
+    { header: 'priority', operation: 'set', value: 'u=1, i' }
   ];
 
   // Cookie 헤더 주입 (아이템스카우트는 h[] 배열에서 랜덤 선택, 우리는 실제 브라우저 쿠키 사용)
@@ -1434,15 +1434,15 @@ async function setDynamicRule(ruleId, urlFilter, referer, uaInfo, isMobile, cook
   }
 
   const rule = {
-    id:       ruleId,
+    id: ruleId,
     priority: 2,
     action: {
       type: 'modifyHeaders',
       requestHeaders: requestHeaders
     },
     condition: {
-      urlFilter:                urlFilter,
-      resourceTypes:            ['xmlhttprequest'],
+      urlFilter: urlFilter,
+      resourceTypes: ['xmlhttprequest'],
       // 아이템스카우트와 동일: m. 도메인 제외 안 함
       excludedInitiatorDomains: [
         'smartstore.naver.com', 'brand.naver.com'
@@ -1452,7 +1452,7 @@ async function setDynamicRule(ruleId, urlFilter, referer, uaInfo, isMobile, cook
 
   await chrome.declarativeNetRequest.updateDynamicRules({
     removeRuleIds: [ruleId],
-    addRules:      [rule]
+    addRules: [rule]
   });
 }
 
@@ -1464,7 +1464,7 @@ async function setDynamicRule(ruleId, urlFilter, referer, uaInfo, isMobile, cook
 async function removeRule(ruleId) {
   await chrome.declarativeNetRequest.updateDynamicRules({
     removeRuleIds: [ruleId],
-    addRules:      []
+    addRules: []
   }).catch(function() {});
 }
 
@@ -1487,7 +1487,7 @@ function fetchWithTimeout(url, options, timeoutMs) {
 }
 
 /**
- * 네이버 상품 URL을 파싱해 storeType, storeSlug, productId를 있는 객체를 반환한다.
+ * 네이버 상품 URL을 파싱해 storeType, storeSlug, productId를 담은 객체를 반환한다.
  * @param {string} url - 네이버 상품 URL
  * @returns {{storeType: 'smartstore'|'brand', storeSlug: string, productId: string}} 파싱 결과
  * @throws {Error} URL 형식이 유효하지 않으면
@@ -1514,7 +1514,7 @@ function extractProductNoFromUrl(url) {
 
 /**
  * URL이 유효한 네이버 상품 URL 형식인지 확인한다.
- * @param {string} url - 코인할 URL
+ * @param {string} url - 확인할 URL
  * @returns {boolean} 유효한 네이버 상품 URL이면 true
  */
 function isValidNaverUrl(url) {
@@ -1531,15 +1531,15 @@ function isValidNaverUrl(url) {
 function buildProductResult(productUrl, data) {
   if (!data) return { product: makeError(productUrl, 'API 응답 비어있음'), options: [], supplements: [] };
 
-  const amt = data.reviewAmount      || {};
-  const bv = data.benefitsView      || {};
-  const cat = data.category          || {};
-  const ch = data.channel           || {};
+  const amt = data.reviewAmount || {};
+  const bv = data.benefitsView || {};
+  const cat = data.category || {};
+  const ch = data.channel || {};
   const pdi = data.productDeliveryInfo || {};
   const nss = data.naverShoppingSearchInfo || {};
 
-  const channelUid = data.channelUid  || ch.channelUid  || null;
-  const channelId = data.channelId   || ch.channelNo   || ch.id       || ch.channelId || null;
+  const channelUid = data.channelUid || ch.channelUid || null;
+  const channelId = data.channelId || ch.channelNo || ch.id || ch.channelId || null;
   const channelName = data.channelName || ch.channelName || null;
 
   // productId = URL 끝 숫자 (id 필드), productNo = 내부 상품번호
@@ -1551,29 +1551,29 @@ function buildProductResult(productUrl, data) {
 
   // 상품 공통 필드
   const baseProduct = {
-    productId:           productId,
-    productNo:           productNo,
-    mallNo:              data.mallNo != null ? data.mallNo : (data.mallSeq != null ? data.mallSeq : (ch.mallSeq != null ? ch.mallSeq : (ch.brandMallSeq != null ? ch.brandMallSeq : null))),
-    mallName:            channelName,
-    channelId:           channelId != null ? String(channelId) : null,
-    channelName:         channelName,
-    brandId:             data.brandId       != null ? String(data.brandId)       : (nss.brandId != null ? String(nss.brandId) : null),
-    brandName:           nn(data.brandName != null ? data.brandName : (nss.brandName || null)),
-    categoryId:          nn(cat.categoryId),
-    categoryName:        nn(cat.categoryName),
-    productName:         nn(data.name),
-    price:               data.salePrice     != null ? data.salePrice     : null,
-    salesPrice:          bv.discountedSalePrice != null ? bv.discountedSalePrice : (data.discountedSalePrice != null ? data.discountedSalePrice : (data.salePrice != null ? data.salePrice : null)),
-    reviewCount:         amt.totalReviewCount   != null ? amt.totalReviewCount   : null,
-    reviewScore:         amt.averageReviewScore != null ? +Number(amt.averageReviewScore).toFixed(2) : null,
-    soldout:             data.soldout != null ? !!data.soldout : null,
-    status:              'success',
-    deliveryType:        nn(pdi.deliveryAttributeType),
-    wholeCategoryId:     nn(cat.wholeCategoryId),
-    wholeCategoryName:   nn(cat.wholeCategoryName),
-    productUrl:          productUrl,
-    channelUid:          channelUid,
-    timestamp:           new Date().toISOString()
+    productId: productId,
+    productNo: productNo,
+    mallNo: data.mallNo != null ? data.mallNo : (data.mallSeq != null ? data.mallSeq : (ch.mallSeq != null ? ch.mallSeq : (ch.brandMallSeq != null ? ch.brandMallSeq : null))),
+    mallName: channelName,
+    channelId: channelId != null ? String(channelId) : null,
+    channelName: channelName,
+    brandId: data.brandId != null ? String(data.brandId) : (nss.brandId != null ? String(nss.brandId) : null),
+    brandName: nn(data.brandName != null ? data.brandName : (nss.brandName || null)),
+    categoryId: nn(cat.categoryId),
+    categoryName: nn(cat.categoryName),
+    productName: nn(data.name),
+    price: data.salePrice != null ? data.salePrice : null,
+    salesPrice: bv.discountedSalePrice != null ? bv.discountedSalePrice : (data.discountedSalePrice != null ? data.discountedSalePrice : (data.salePrice != null ? data.salePrice : null)),
+    reviewCount: amt.totalReviewCount != null ? amt.totalReviewCount : null,
+    reviewScore: amt.averageReviewScore != null ? +Number(amt.averageReviewScore).toFixed(2) : null,
+    soldout: data.soldout != null ? !!data.soldout : null,
+    status: 'success',
+    deliveryType: nn(pdi.deliveryAttributeType),
+    wholeCategoryId: nn(cat.wholeCategoryId),
+    wholeCategoryName: nn(cat.wholeCategoryName),
+    productUrl: productUrl,
+    channelUid: channelUid,
+    timestamp: new Date().toISOString()
   };
 
   const optionRows = [];
@@ -1589,19 +1589,19 @@ function buildProductResult(productUrl, data) {
   if (data.optionUsable && Array.isArray(data.optionCombinations) && data.optionCombinations.length > 0) {
     for (const opt of data.optionCombinations) {
       optionRows.push({
-        productId:      productId,
-        optionId:       opt.id != null ? String(opt.id) : null,
-        optionSeq:      opt.regOrder != null ? opt.regOrder : null,
-        optionGroup1:   optionGroup1,
-        optionName1:    opt.optionName1 || null,
-        optionGroup2:   optionGroup2,
-        optionName2:    opt.optionName2 || null,
-        optionGroup3:   optionGroup3,
-        optionName3:    opt.optionName3 || null,
-        optionPrice:    opt.price != null ? opt.price : null,
-        stockQuantity:  opt.stockQuantity != null ? opt.stockQuantity : null,
-        registerDate:   normalizeDate(opt.registerDate),
-        timestamp:      baseProduct.timestamp
+        productId: productId,
+        optionId: opt.id != null ? String(opt.id) : null,
+        optionSeq: opt.regOrder != null ? opt.regOrder : null,
+        optionGroup1: optionGroup1,
+        optionName1: opt.optionName1 || null,
+        optionGroup2: optionGroup2,
+        optionName2: opt.optionName2 || null,
+        optionGroup3: optionGroup3,
+        optionName3: opt.optionName3 || null,
+        optionPrice: opt.price != null ? opt.price : null,
+        stockQuantity: opt.stockQuantity != null ? opt.stockQuantity : null,
+        registerDate: normalizeDate(opt.registerDate),
+        timestamp: baseProduct.timestamp
       });
     }
   }
@@ -1612,19 +1612,19 @@ function buildProductResult(productUrl, data) {
     for (const opt of data.options) {
       if (opt.stockQuantity != null || opt.price != null) {
         optionRows.push({
-          productId:      productId,
-          optionId:       opt.id != null ? String(opt.id) : null,
-          optionSeq:      opt.regOrder != null ? opt.regOrder : null,
-          optionGroup1:   opt.groupName || null,
-          optionName1:    opt.name || null,
-          optionGroup2:   null,
-          optionName2:    null,
-          optionGroup3:   null,
-          optionName3:    null,
-          optionPrice:    opt.price != null ? opt.price : null,
-          stockQuantity:  opt.stockQuantity != null ? opt.stockQuantity : null,
-          registerDate:   null,
-          timestamp:      baseProduct.timestamp
+          productId: productId,
+          optionId: opt.id != null ? String(opt.id) : null,
+          optionSeq: opt.regOrder != null ? opt.regOrder : null,
+          optionGroup1: opt.groupName || null,
+          optionName1: opt.name || null,
+          optionGroup2: null,
+          optionName2: null,
+          optionGroup3: null,
+          optionName3: null,
+          optionPrice: opt.price != null ? opt.price : null,
+          stockQuantity: opt.stockQuantity != null ? opt.stockQuantity : null,
+          registerDate: null,
+          timestamp: baseProduct.timestamp
         });
       }
     }
@@ -1634,19 +1634,19 @@ function buildProductResult(productUrl, data) {
   if (data.supplementProductUsable && Array.isArray(data.supplementProducts) && data.supplementProducts.length > 0) {
     data.supplementProducts.forEach(function(sup, idx) {
       supplementRows.push({
-        productId:      productId,
-        optionId:       sup.id != null ? String(sup.id) : null,
-        optionSeq:      idx,
-        optionGroup1:   sup.groupName || null,
-        optionName1:    sup.name || null,
-        optionGroup2:   null,
-        optionName2:    null,
-        optionGroup3:   null,
-        optionName3:    null,
-        optionPrice:    sup.price != null ? sup.price : null,
-        stockQuantity:  sup.stockQuantity != null ? sup.stockQuantity : null,
-        registerDate:   null,
-        timestamp:      baseProduct.timestamp
+        productId: productId,
+        optionId: sup.id != null ? String(sup.id) : null,
+        optionSeq: idx,
+        optionGroup1: sup.groupName || null,
+        optionName1: sup.name || null,
+        optionGroup2: null,
+        optionName2: null,
+        optionGroup3: null,
+        optionName3: null,
+        optionPrice: sup.price != null ? sup.price : null,
+        stockQuantity: sup.stockQuantity != null ? sup.stockQuantity : null,
+        registerDate: null,
+        timestamp: baseProduct.timestamp
       });
     });
   }
@@ -1701,7 +1701,7 @@ function sendProgress(current, total, currentUrl) {
   };
   chrome.storage.local.set({ collectionProgress: progress }).catch(() => {});
   chrome.runtime.sendMessage({
-    action:     'progressUpdate',
+    action: 'progressUpdate',
     ...progress
   }).catch(function() {});
 }
@@ -1709,58 +1709,58 @@ function sendProgress(current, total, currentUrl) {
 // CSV 생성
 // v3.4.0: 상품/옵션/추가상품 각각 별도 컬럼 세트
 const PRODUCT_COLUMNS = [
-  ['상품코드',            'productId'],
-  ['상품번호',            'productNo'],
-  ['판매처순번',          'mallNo'],
-  ['판매처명',            'mallName'],
-  ['채널ID',             'channelId'],
-  ['채널명',             'channelName'],
-  ['브랜드ID',           'brandId'],
-  ['브랜드명',           'brandName'],
-  ['카테고리ID',         'categoryId'],
-  ['카테고리',           'categoryName'],
-  ['상품명',             'productName'],
-  ['판매가',             'price'],
-  ['할인가',             'salesPrice'],
-  ['재고수량',           'stockQuantity'],
-  ['리뷰수',             'reviewCount'],
-  ['평점',              'reviewScore'],
-  ['품절여부',           'soldout'],
-  ['상태',              'status'],
-  ['배송속성',           'deliveryType'],
-  ['전체카테고리ID',      'wholeCategoryId'],
-  ['전체카테고리',        'wholeCategoryName'],
-  ['상품주소',           'productUrl'],
-  ['채널UID',           'channelUid'],
-  ['오류메시지',         'errorMessage'],
-  ['수집시간',           'timestamp']
+  ['상품코드', 'productId'],
+  ['상품번호', 'productNo'],
+  ['판매처순번', 'mallNo'],
+  ['판매처명', 'mallName'],
+  ['채널ID', 'channelId'],
+  ['채널명', 'channelName'],
+  ['브랜드ID', 'brandId'],
+  ['브랜드명', 'brandName'],
+  ['카테고리ID', 'categoryId'],
+  ['카테고리', 'categoryName'],
+  ['상품명', 'productName'],
+  ['판매가', 'price'],
+  ['할인가', 'salesPrice'],
+  ['재고수량', 'stockQuantity'],
+  ['리뷰수', 'reviewCount'],
+  ['평점', 'reviewScore'],
+  ['품절여부', 'soldout'],
+  ['상태', 'status'],
+  ['배송속성', 'deliveryType'],
+  ['전체카테고리ID', 'wholeCategoryId'],
+  ['전체카테고리', 'wholeCategoryName'],
+  ['상품주소', 'productUrl'],
+  ['채널UID', 'channelUid'],
+  ['오류메시지', 'errorMessage'],
+  ['수집시간', 'timestamp']
 ];
 
 const OPTION_COLUMNS = [
-  ['상품코드',           'productId'],
-  ['옵션코드',           'optionId'],
-  ['옵션순번',           'optionSeq'],
-  ['옵션그룹1',          'optionGroup1'],
-  ['옵션명1',            'optionName1'],
-  ['옵션그룹2',          'optionGroup2'],
-  ['옵션명2',            'optionName2'],
-  ['옵션그룹3',          'optionGroup3'],
-  ['옵션명3',            'optionName3'],
-  ['옵션가',             'optionPrice'],
-  ['재고수량',           'stockQuantity'],
-  ['옵션등록일',          'registerDate'],
-  ['수집시간',           'timestamp']
+  ['상품코드', 'productId'],
+  ['옵션코드', 'optionId'],
+  ['옵션순번', 'optionSeq'],
+  ['옵션그룹1', 'optionGroup1'],
+  ['옵션명1', 'optionName1'],
+  ['옵션그룹2', 'optionGroup2'],
+  ['옵션명2', 'optionName2'],
+  ['옵션그룹3', 'optionGroup3'],
+  ['옵션명3', 'optionName3'],
+  ['옵션가', 'optionPrice'],
+  ['재고수량', 'stockQuantity'],
+  ['옵션등록일', 'registerDate'],
+  ['수집시간', 'timestamp']
 ];
 
 const SUPPLEMENT_COLUMNS = [
-  ['상품코드',           'productId'],
-  ['옵션코드',           'optionId'],
-  ['옵션순번',           'optionSeq'],
-  ['옵션그룹1',          'optionGroup1'],
-  ['옵션명1',            'optionName1'],
-  ['옵션가',             'optionPrice'],
-  ['재고수량',           'stockQuantity'],
-  ['수집시간',           'timestamp']
+  ['상품코드', 'productId'],
+  ['옵션코드', 'optionId'],
+  ['옵션순번', 'optionSeq'],
+  ['옵션그룹1', 'optionGroup1'],
+  ['옵션명1', 'optionName1'],
+  ['옵션가', 'optionPrice'],
+  ['재고수량', 'stockQuantity'],
+  ['수집시간', 'timestamp']
 ];
 
 // 하위 호환용 (JSON 키 정렬 등)
@@ -1814,7 +1814,7 @@ function buildCSV(data, columns) {
 // 유틸리티
 /**
  * 타임스탬프 문자열을 생성한다 (예: 20260305125530).
- * @returns {string} YYYYMMDDHHmmss 형식 안의 타임스킬프
+ * @returns {string} YYYYMMDDHHmmss 형식의 타임스탬프
  */
 function buildTimestamp() {
   const d = new Date();
@@ -1836,31 +1836,31 @@ function buildTimestamp() {
 function makeError(url, errorMessage) {
   const pid = extractProductNoFromUrl(url);
   return {
-    productId:         pid,
-    productNo:         pid,
-    mallNo:            null,
-    mallName:          null,
-    channelId:         null,
-    channelName:       null,
-    brandId:           null,
-    brandName:         null,
-    categoryId:        null,
-    categoryName:      null,
-    productName:       null,
-    price:             null,
-    salesPrice:        null,
-    stockQuantity:     null,
-    reviewCount:       null,
-    reviewScore:       null,
-    soldout:           null,
-    status:            'error',
-    deliveryType:      null,
-    wholeCategoryId:   null,
+    productId: pid,
+    productNo: pid,
+    mallNo: null,
+    mallName: null,
+    channelId: null,
+    channelName: null,
+    brandId: null,
+    brandName: null,
+    categoryId: null,
+    categoryName: null,
+    productName: null,
+    price: null,
+    salesPrice: null,
+    stockQuantity: null,
+    reviewCount: null,
+    reviewScore: null,
+    soldout: null,
+    status: 'error',
+    deliveryType: null,
+    wholeCategoryId: null,
     wholeCategoryName: null,
-    productUrl:        url,
-    channelUid:        null,
-    errorMessage:      errorMessage,
-    timestamp:         new Date().toISOString()
+    productUrl: url,
+    channelUid: null,
+    errorMessage: errorMessage,
+    timestamp: new Date().toISOString()
   };
 }
 
@@ -1956,8 +1956,8 @@ async function applyScheduleAlarm(cfg) {
   }
 
   await chrome.alarms.create('nsp-schedule', {
-    when:            target.getTime(),
-    periodInMinutes: 24 * 60  // 매일 같은 시각 반복
+    when: target.getTime(),
+    periodInMinutes: 24 * 60 // 매일 같은 시각 반복
   });
 }
 
@@ -1974,9 +1974,9 @@ async function prepareSlackUpload(token, fileBytes, fname, mimeType) {
   // Step 1: 업로드 URL 획득
   // ⚠️ Content-Type 반드시 application/x-www-form-urlencoded (JSON으로 보내면 length/filename 인식 안 됨)
   const urlRes = await fetch('https://slack.com/api/files.getUploadURLExternal', {
-    method:  'POST',
+    method: 'POST',
     headers: {
-      'Content-Type':  'application/x-www-form-urlencoded',
+      'Content-Type': 'application/x-www-form-urlencoded',
       'Authorization': 'Bearer ' + token
     },
     body: 'filename=' + encodeURIComponent(fname) + '&length=' + fileBytes.byteLength
@@ -1990,7 +1990,7 @@ async function prepareSlackUpload(token, fileBytes, fname, mimeType) {
 
   const uploadRes = await fetch(urlJson.upload_url, {
     method: 'POST',
-    body:   formData
+    body: formData
   });
   if (!uploadRes.ok) {
     throw new Error('파일 업로드 실패 (HTTP ' + uploadRes.status + ')');
@@ -2001,7 +2001,7 @@ async function prepareSlackUpload(token, fileBytes, fname, mimeType) {
 }
 
 /**
- * 에 준비된 파일들을 한 번의 completeUploadExternal 호출로 완료하고 선택된 슬랙 채널에 공유한다.
+ * 업로드 준비된 파일들을 한 번의 completeUploadExternal 호출로 완료하고 선택된 채널에 공유한다.
  * @param {string} token - Slack Bot Token (xoxb-...)
  * @param {string} channel - 업로드할 슬랙 채널 ID
  * @param {{id: string, title: string}[]} fileEntries - prepareSlackUpload 반환값 배열
@@ -2012,15 +2012,15 @@ async function completeSlackUpload(token, channel, fileEntries, initialComment) 
   // Step 3: 업로드 완료 + 채널 공유 — fileEntries = [{id, title}, ...]
   // files 배열에 여러 항목을 담으면 Slack이 단일 메시지에 모든 파일을 첨부
   const completeBody = {
-    files:      fileEntries,
+    files: fileEntries,
     channel_id: channel
   };
   if (initialComment) completeBody.initial_comment = initialComment;
 
   const completeRes = await fetch('https://slack.com/api/files.completeUploadExternal', {
-    method:  'POST',
+    method: 'POST',
     headers: {
-      'Content-Type':  'application/json; charset=utf-8',
+      'Content-Type': 'application/json; charset=utf-8',
       'Authorization': 'Bearer ' + token
     },
     body: JSON.stringify(completeBody)
@@ -2032,7 +2032,7 @@ async function completeSlackUpload(token, channel, fileEntries, initialComment) 
 }
 
 /**
- * 수집 결과를 Slack에 파일(상품/옵션/추가상품기준)으로 업로드하고 요약 메시지를 전송한다.
+ * 수집 결과를 Slack에 파일 (상품/옵션/추가상품기준)으로 업로드하고 요약 메시지를 전송한다.
  * slackConfig.enabled가 false이거나 토큰/채널이 없으면 실행되지 않는다.
  * @param {{products: Object[], options: Object[], supplements: Object[]}} results - 수집 결과
  * @returns {Promise<void>}
@@ -2046,7 +2046,7 @@ async function sendSlackNotification(results) {
   if (!token || !channel) return;
 
   const products = results.products || [];
-  const options = results.options  || [];
+  const options = results.options || [];
   const supps = results.supplements || [];
   const total = products.length;
   const ok = products.filter(function(r) { return r && r.status === 'success'; }).length;
@@ -2068,17 +2068,17 @@ async function sendSlackNotification(results) {
 
   // 내보내기 설정 로드
   const { exportSettings = {} } = await chrome.storage.local.get('exportSettings');
-  const fmt = exportSettings.format            || 'csv';
-  const prefixProd = exportSettings.prefix            || '네이버상품';
-  const prefixOpt = exportSettings.prefixOption      || '네이버옵션';
-  const prefixSup = exportSettings.prefixSupplement  || '네이버추가상품';
+  const fmt = exportSettings.format || 'csv';
+  const prefixProd = exportSettings.prefix || '네이버상품';
+  const prefixOpt = exportSettings.prefixOption || '네이버옵션';
+  const prefixSup = exportSettings.prefixSupplement || '네이버추가상품';
   const ts = buildTimestamp();
 
   if (fmt === 'json') {
     // JSON: 단일 파일 — 바로 complete
     const jsonStr = JSON.stringify({
-      products:    products.map(sortResultKeys),
-      options:     options,
+      products: products.map(sortResultKeys),
+      options: options,
       supplements: supps
     }, null, 2);
     const fileBytes = new TextEncoder().encode(jsonStr);

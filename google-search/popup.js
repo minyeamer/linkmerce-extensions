@@ -339,5 +339,3 @@ function updateLastResultMeta(meta) {
   const capturedAt = meta.capturedAt ? new Date(meta.capturedAt).toLocaleString() : '시간 미상';
   lastResultMetaEl.textContent = `${meta.rowCount}건 · ${capturedAt}`;
 }
-
-

@@ -76,11 +76,11 @@ const slackToken = $('slackToken');
 const slackChannel = $('slackChannel');
 
 let isRunning = false;
-let pollTimer = null;  // 진행 상황 polling 타이머
-let timerTick = null;  // 경과/남은시간 1초 갱신 타이머
+let pollTimer = null; // 진행 상황 polling 타이머
+let timerTick = null; // 경과/남은시간 1초 갱신 타이머
 let proxyPollTimer = null; // 프록시 상태 주기 갱신 타이머 (수집 중 아닐 때도 동작)
-let _collectionStartTime = null;  // 수집 시작 시각 (elapsed 계산용, storage에서 로드)
-let _currentUrlSource = 'manual';  // 현재 URL 소스 (파일명 or 'manual')
+let _collectionStartTime = null; // 수집 시작 시각 (elapsed 계산용, storage에서 로드)
+let _currentUrlSource = 'manual'; // 현재 URL 소스 (파일명 or 'manual')
 
 // 탭 전환
 tabBtns.forEach(btn => {
@@ -91,7 +91,7 @@ tabBtns.forEach(btn => {
     $('tab-' + btn.dataset.tab).style.display = 'block';
 
     if (btn.dataset.tab === 'settings') loadSettingsTab();
-    if (btn.dataset.tab === 'collect')  refreshProxyActiveBadge();
+    if (btn.dataset.tab === 'collect') refreshProxyActiveBadge();
   });
 });
 
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (running) {
     _collectionStartTime = collectionStartTime || Date.now();
     setRunning(true);
-    progressSection.style.display = 'block';  // 진행 상황 섹션 표시
+    progressSection.style.display = 'block'; // 진행 상황 섹션 표시
     // 현재 진행 상황 즉시 렌더링 (polling 첫 틱 이전에 빈 화면 방지)
     const { collectionProgress } = await chrome.storage.local.get('collectionProgress');
     if (collectionProgress) {
@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     _collectionStartTime = collectionStartTime;
     if (collectionResults.length > 0) {
       progressSection.style.display = 'block';
-      tickTimer();  // 완료 상태에서도 경과시간 1회 렌더링
+      tickTimer(); // 완료 상태에서도 경과시간 1회 렌더링
     }
   }
 
@@ -207,7 +207,7 @@ async function loadFileHandle() {
  * @returns {Promise<void>}
  */
 async function tryLoadDefaultFile() {
-  if (urlInput.value.trim() !== '') return;  // 이미 내용 있으면 건드리지 않음
+  if (urlInput.value.trim() !== '') return; // 이미 내용 있으면 건드리지 않음
 
   // File System Access API 지원 여부 확인
   if (typeof window.showOpenFilePicker === 'function') {
@@ -260,7 +260,7 @@ fileInput.addEventListener('change', async (e) => {
   urlInput.value = text;
   showFileInfo(file.name);
   refreshCount();
-  fileInput.value = '';  // 동일 파일 재선택 허용
+  fileInput.value = ''; // 동일 파일 재선택 허용
 });
 
 clearFileBtn.addEventListener('click', () => {
@@ -277,7 +277,7 @@ clearFileBtn.addEventListener('click', () => {
 function showFileInfo(name) {
   fileNameLabel.textContent = '📄 ' + name;
   fileInfo.style.display = 'flex';
-  _currentUrlSource = name;  // 파일 로드 시 소스 업데이트
+  _currentUrlSource = name; // 파일 로드 시 소스 업데이트
 }
 
 // URL 카운트
@@ -352,7 +352,7 @@ startBtn.addEventListener('click', async () => {
     stopPolling();
 
     // polling이 이미 완료 처리를 했을 수 있으므로 isRunning 확인
-    if (!isRunning) return;  // polling에서 이미 처리 완료
+    if (!isRunning) return; // polling에서 이미 처리 완료
 
     if (res?.success) {
       const data = res.data || { products: [], options: [], supplements: [] };
@@ -413,9 +413,9 @@ stopBtn.addEventListener('click', async () => {
 exportBtn.addEventListener('click', async () => {
   try {
     const { exportSettings = {} } = await chrome.storage.local.get('exportSettings');
-    const format = exportSettings.format          || 'csv';
-    const prefix = exportSettings.prefix          || '네이버상품';
-    const prefixOption = exportSettings.prefixOption    || '네이버옵션';
+    const format = exportSettings.format || 'csv';
+    const prefix = exportSettings.prefix || '네이버상품';
+    const prefixOption = exportSettings.prefixOption || '네이버옵션';
     const prefixSupplement = exportSettings.prefixSupplement || '네이버추가상품';
 
     const res = await chrome.runtime.sendMessage({
@@ -444,7 +444,7 @@ exportBtn.addEventListener('click', async () => {
  */
 function startPolling() {
   stopPolling();
-  startTimerTick();  // 경과/남은시간 1초 tick 시작
+  startTimerTick(); // 경과/남은시간 1초 tick 시작
   pollTimer = setInterval(async () => {
     try {
       const {
@@ -552,8 +552,8 @@ function renderResults(data) {
 
   // v3.4.0: data = {products, options, supplements}
   const products = (data && data.products) ? data.products.filter(Boolean) : [];
-  const optCnt = (data && data.options)      ? data.options.length      : 0;
-  const supCnt = (data && data.supplements)  ? data.supplements.length  : 0;
+  const optCnt = (data && data.options) ? data.options.length : 0;
+  const supCnt = (data && data.supplements) ? data.supplements.length : 0;
 
   const ok = products.filter(r => r.status === 'success').length;
   const sp = products.filter(r => ['paused','deleted','soldout'].includes(r.status)).length;
@@ -570,10 +570,10 @@ function renderResults(data) {
     const stock = item.stockQuantity >= 0 ? item.stockQuantity.toLocaleString() : '-';
 
     let tagClass = 'tag-error', tagText = '❌ 실패';
-    if (item.status === 'success')  { tagClass = 'tag-success'; tagText = '✅ 성공'; }
-    if (item.status === 'paused')   { tagClass = 'tag-special'; tagText = '⏸ 중지'; }
-    if (item.status === 'deleted')  { tagClass = 'tag-special'; tagText = '🗑 삭제'; }
-    if (item.status === 'soldout')  { tagClass = 'tag-special'; tagText = '📦 품절'; }
+    if (item.status === 'success') { tagClass = 'tag-success'; tagText = '✅ 성공'; }
+    if (item.status === 'paused') { tagClass = 'tag-special'; tagText = '⏸ 중지'; }
+    if (item.status === 'deleted') { tagClass = 'tag-special'; tagText = '🗑 삭제'; }
+    if (item.status === 'soldout') { tagClass = 'tag-special'; tagText = '📦 품절'; }
 
     const nameDisplay = item.productName || '';
     const title = nameDisplay ? ` title="${escHtml(nameDisplay)}"` : '';
@@ -741,8 +741,8 @@ async function loadSettingsTab() {
     const s = exRes.settings;
     if (s.format === 'json') { formatJson.checked = true; } else { formatCsv.checked = true; }
     autoExport.checked = !!s.autoExport;
-    if (s.prefix)           exportPrefix.value = s.prefix;
-    if (s.prefixOption)     exportPrefixOption.value = s.prefixOption;
+    if (s.prefix) exportPrefix.value = s.prefix;
+    if (s.prefixOption) exportPrefixOption.value = s.prefixOption;
     if (s.prefixSupplement) exportPrefixSupplement.value = s.prefixSupplement;
     updateExportBtnLabel(s.format || 'csv');
     updatePrefixDisabled(s.format || 'csv');
@@ -769,8 +769,8 @@ async function loadSettingsTab() {
     const cfg = slackRes.config;
     slackEnabled.checked = !!cfg.enabled;
     slackEnabledLabel.textContent = cfg.enabled ? '활성' : '비활성';
-    slackToken.value = cfg.token       || '';
-    slackChannel.value = cfg.channel     || '';
+    slackToken.value = cfg.token || '';
+    slackChannel.value = cfg.channel || '';
   }
 
   // 저장된 결과 정보
@@ -823,8 +823,8 @@ function parseProxyList(text) {
     .map(l => {
       const parts = l.split(':');
       return {
-        host:     parts[0],
-        port:     parseInt(parts[1], 10),
+        host: parts[0],
+        port: parseInt(parts[1], 10),
         username: parts[2] || '',
         password: parts[3] || ''
       };
@@ -838,10 +838,10 @@ function parseProxyList(text) {
 async function saveProxySettings() {
   const proxies = parseProxyList(proxyInput.value);
   const config = {
-    enabled:         proxyEnabled.checked,
-    proxies:         proxies,
-    rotateInterval:  parseInt(proxyRotateInterval.value, 10) || 0,
-    errorThreshold:  parseInt(proxyErrorThreshold.value,  10) >= 0 ? parseInt(proxyErrorThreshold.value, 10) : 3
+    enabled: proxyEnabled.checked,
+    proxies: proxies,
+    rotateInterval: parseInt(proxyRotateInterval.value, 10) || 0,
+    errorThreshold: parseInt(proxyErrorThreshold.value, 10) >= 0 ? parseInt(proxyErrorThreshold.value, 10) : 3
   };
   await chrome.runtime.sendMessage({ action: 'saveProxyConfig', config });
   proxyCount.textContent = proxies.length + '개 프록시';
@@ -896,7 +896,7 @@ selectDefaultFileBtn.addEventListener('click', async () => {
       }
       return;
     } catch (e) {
-      if (e.name === 'AbortError') return;  // 사용자가 취소
+      if (e.name === 'AbortError') return; // 사용자가 취소
       // API 미지원 등 → 구형 방식으로 fallback
     }
   }
@@ -948,8 +948,8 @@ exportPrefixSupplement.addEventListener('input', () => saveExportSettings());
  */
 async function saveExportSettings() {
   const format = document.querySelector('input[name="exportFormat"]:checked')?.value || 'csv';
-  const prefix = exportPrefix.value.trim()           || '네이버상품';
-  const prefixOption = exportPrefixOption.value.trim()     || '네이버옵션';
+  const prefix = exportPrefix.value.trim() || '네이버상품';
+  const prefixOption = exportPrefixOption.value.trim() || '네이버옵션';
   const prefixSupplement = exportPrefixSupplement.value.trim() || '네이버추가상품';
   const settings = { format, autoExport: autoExport.checked, prefix, prefixOption, prefixSupplement };
   await chrome.runtime.sendMessage({ action: 'saveExportSettings', settings });
@@ -990,7 +990,7 @@ scheduleTime.addEventListener('change', saveScheduleSettings);
 async function saveScheduleSettings() {
   const config = {
     enabled: scheduleEnabled.checked,
-    time:    scheduleTime.value || '09:00'
+    time: scheduleTime.value || '09:00'
   };
   await chrome.runtime.sendMessage({ action: 'saveScheduleConfig', config });
   updateScheduleNextInfo(config);
@@ -1030,7 +1030,7 @@ function debouncedSaveSlack() {
   clearTimeout(_slackSaveTimer);
   _slackSaveTimer = setTimeout(saveSlackSettings, 700);
 }
-slackToken.addEventListener('input',   debouncedSaveSlack);
+slackToken.addEventListener('input', debouncedSaveSlack);
 slackChannel.addEventListener('input', debouncedSaveSlack);
 
 /**
@@ -1039,9 +1039,9 @@ slackChannel.addEventListener('input', debouncedSaveSlack);
  */
 async function saveSlackSettings() {
   const config = {
-    enabled:    slackEnabled.checked,
-    token:      slackToken.value.trim(),
-    channel:    slackChannel.value.trim()
+    enabled: slackEnabled.checked,
+    token: slackToken.value.trim(),
+    channel: slackChannel.value.trim()
   };
   await chrome.runtime.sendMessage({ action: 'saveSlackConfig', config });
 }
@@ -1089,11 +1089,11 @@ importConfigInput.addEventListener('change', async (e) => {
     await loadSettingsTab();
     const ver = settings._version ? ` (v${settings._version})` : '';
     const KEY_LABEL = {
-      proxyConfig:     '프록시',
-      exportSettings:  '내보내기',
-      delayConfig:     '딜레이',
-      scheduleConfig:  '스케줄',
-      slackConfig:     'Slack',
+      proxyConfig: '프록시',
+      exportSettings: '내보내기',
+      delayConfig: '딜레이',
+      scheduleConfig: '스케줄',
+      slackConfig: 'Slack',
       defaultFilePath: '기본 파일경로'
     };
     const applied = (res.applied || [])

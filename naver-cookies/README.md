@@ -21,7 +21,7 @@ Linux 서버(Airflow 등)에서 네이버 로그인 세션이 필요할 때, 실
 [Service Worker (background.js)]
       │  chrome.cookies API → .naver.com 쿠키 추출
       │  chrome.alarms API → 두 가지 독립 스케줄
-      │   ├─ ALARM_SEND:    탭 새로고침 → 쿠키 추출 → Slack 파일 업로드
+      │   ├─ ALARM_SEND: 탭 새로고침 → 쿠키 추출 → Slack 파일 업로드
       │   └─ ALARM_REFRESH: 탭 새로고침만 (세션 유지용)
       │  Slack Files API (v2) → 텍스트 파일 업로드
       ▼
@@ -80,10 +80,10 @@ JSON 파일로 전체 설정(Slack, 전송 스케줄, 새로고침 스케줄)을
 // Slack 전송 스케줄
 {
   "enabled": true,
-  "mode": "interval",          // "interval" | "times"
-  "intervalMinutes": 1440,     // 간격 모드: 반복 간격 (분)
-  "baseTime": "00:00",         // 간격 모드: 발화 기준 시각
-  "times": ["08:00", "20:00"]  // 시각 모드: 실행 시각 목록
+  "mode": "interval", // "interval" | "times"
+  "intervalMinutes": 1440, // 간격 모드: 반복 간격 (분)
+  "baseTime": "00:00", // 간격 모드: 발화 기준 시각
+  "times": ["08:00", "20:00"] // 시각 모드: 실행 시각 목록
 }
 
 // 새로고침 스케줄

@@ -4,13 +4,13 @@
  * 역할:
  *  - 네이버 탭 새로고침 → .naver.com 쿠키 추출 → Slack 파일 업로드
  *  - 두 가지 독립 스케줄:
- *      - ALARM_SEND:    새로고침 + 추출 + Slack 전송 (간격 또는 시각 모드)
+ *      - ALARM_SEND: 새로고침 + 추출 + Slack 전송 (간격 또는 시각 모드)
  *      - ALARM_REFRESH: Slack 전송 없이 새로고침만 (간격 모드, 세션 유지용)
  *  - 설정 전체 내보내기 / 불러오기 (getAllSettings / setAllSettings)
  *
  * 스케줄 설정 형식:
- *  - sendScheduleConfig:  { enabled, mode: 'interval'|'times', intervalMinutes, baseTime: 'HH:MM', times: ['HH:MM'] }
- *  - refreshScheduleConfig:       { enabled, intervalMinutes, baseTime: 'HH:MM' }
+ *  - sendScheduleConfig: { enabled, mode: 'interval'|'times', intervalMinutes, baseTime: 'HH:MM', times: ['HH:MM'] }
+ *  - refreshScheduleConfig: { enabled, intervalMinutes, baseTime: 'HH:MM' }
  */
 
 'use strict';
@@ -98,9 +98,9 @@ async function refreshNaverTab() {
  */
 async function uploadFileToSlack(token, channel, fileBytes, fname, initialComment) {
   const urlRes = await fetch('https://slack.com/api/files.getUploadURLExternal', {
-    method:  'POST',
+    method: 'POST',
     headers: {
-      'Content-Type':  'application/x-www-form-urlencoded',
+      'Content-Type': 'application/x-www-form-urlencoded',
       'Authorization': `Bearer ${token}`,
     },
     body: `filename=${encodeURIComponent(fname)}&length=${fileBytes.byteLength}`,
@@ -116,9 +116,9 @@ async function uploadFileToSlack(token, channel, fileBytes, fname, initialCommen
   const completeBody = { files: [{ id: urlJson.file_id, title: fname }], channel_id: channel };
   if (initialComment) completeBody.initial_comment = initialComment;
   const completeRes = await fetch('https://slack.com/api/files.completeUploadExternal', {
-    method:  'POST',
+    method: 'POST',
     headers: {
-      'Content-Type':  'application/json; charset=utf-8',
+      'Content-Type': 'application/json; charset=utf-8',
       'Authorization': `Bearer ${token}`,
     },
     body: JSON.stringify(completeBody),
@@ -142,8 +142,8 @@ async function sendCookiesToSlack(cookieString) {
     throw new Error('Slack 설정이 완료되지 않았습니다. (토큰, 채널, 파일명 필요)');
   }
 
-  const token    = slackConfig.token.trim();
-  const channel  = slackConfig.channel.trim();
+  const token = slackConfig.token.trim();
+  const channel = slackConfig.channel.trim();
   const filename = (slackConfig.filename.trim() || 'naver_cookies') + '.txt';
   const fileBytes = new TextEncoder().encode(cookieString);
   await uploadFileToSlack(token, channel, fileBytes, filename, null);
@@ -157,14 +157,14 @@ async function sendCookiesToSlack(cookieString) {
 async function refreshOnly() {
   const log = {
     timestamp: formatTimestamp(),
-    type:      'refresh',
-    success:   false,
-    tabFound:  false,
-    error:     null,
+    type: 'refresh',
+    success: false,
+    tabFound: false,
+    error: null,
   };
   try {
     log.tabFound = await refreshNaverTab();
-    log.success  = true;
+    log.success = true;
   } catch (e) {
     log.error = e.message;
     throw e;
@@ -182,11 +182,11 @@ async function refreshOnly() {
  */
 async function extractAndSend() {
   const log = {
-    timestamp:   formatTimestamp(),
-    success:     false,
-    error:       null,
+    timestamp: formatTimestamp(),
+    success: false,
+    error: null,
     cookieCount: 0,
-    hasNidSes:   false,
+    hasNidSes: false,
   };
 
   try {
@@ -198,7 +198,7 @@ async function extractAndSend() {
     }
 
     log.cookieCount = cookieString.split('; ').length;
-    log.hasNidSes   = cookieString.includes('NID_SES=');
+    log.hasNidSes = cookieString.includes('NID_SES=');
 
     if (!log.hasNidSes) {
       throw new Error('NID_SES 쿠키가 없습니다. 네이버에 로그인되어 있는지 확인하세요.');
@@ -235,11 +235,11 @@ async function scheduleSendAlarm(config) {
     let delay = mins;
     if (config.baseTime) {
       const [bh, bm] = config.baseTime.split(':').map(Number);
-      const now       = new Date();
-      const nowMins   = now.getHours() * 60 + now.getMinutes();
-      const baseMins  = bh * 60 + bm;
-      const elapsed   = (nowMins - baseMins + 1440) % 1440; // 기준 시각 이후 경과 분
-      const sinceLast = elapsed % mins;                      // 마지막 발화 이후 경과 분
+      const now = new Date();
+      const nowMins = now.getHours() * 60 + now.getMinutes();
+      const baseMins = bh * 60 + bm;
+      const elapsed = (nowMins - baseMins + 1440) % 1440; // 기준 시각 이후 경과 분
+      const sinceLast = elapsed % mins; // 마지막 발화 이후 경과 분
       delay = sinceLast === 0 ? mins : mins - sinceLast;
       delay = Math.max(1, delay);
     }
@@ -286,10 +286,10 @@ async function scheduleRefreshAlarm(config) {
   let delay = mins;
   if (config.baseTime) {
     const [bh, bm] = config.baseTime.split(':').map(Number);
-    const now       = new Date();
-    const nowMins   = now.getHours() * 60 + now.getMinutes();
-    const baseMins  = bh * 60 + bm;
-    const elapsed   = (nowMins - baseMins + 1440) % 1440;
+    const now = new Date();
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const baseMins = bh * 60 + bm;
+    const elapsed = (nowMins - baseMins + 1440) % 1440;
     const sinceLast = elapsed % mins;
     delay = sinceLast === 0 ? mins : mins - sinceLast;
     delay = Math.max(1, delay);
@@ -426,11 +426,11 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           sendResponse({
             success: true,
             settings: {
-              _version:           chrome.runtime.getManifest().version,
-              _exportedAt:        new Date().toISOString(),
-              slackConfig:        stored.slackConfig        || { token: '', channel: '', filename: '' },
+              _version: chrome.runtime.getManifest().version,
+              _exportedAt: new Date().toISOString(),
+              slackConfig: stored.slackConfig || { token: '', channel: '', filename: '' },
               sendScheduleConfig: stored.sendScheduleConfig || { enabled: false, mode: 'interval', intervalMinutes: 1440, baseTime: '00:00', times: [] },
-              refreshScheduleConfig:      stored.refreshScheduleConfig      || { enabled: false, intervalMinutes: 30, baseTime: '00:00' },
+              refreshScheduleConfig: stored.refreshScheduleConfig || { enabled: false, intervalMinutes: 30, baseTime: '00:00' },
             },
           });
           break;
@@ -439,12 +439,12 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         case 'setAllSettings': {
           const s = request.settings || {};
           const toSave = {};
-          if (s.slackConfig)         toSave.slackConfig         = s.slackConfig;
-          if (s.sendScheduleConfig)  toSave.sendScheduleConfig  = s.sendScheduleConfig;
-          if (s.refreshScheduleConfig)       toSave.refreshScheduleConfig       = s.refreshScheduleConfig;
+          if (s.slackConfig) toSave.slackConfig = s.slackConfig;
+          if (s.sendScheduleConfig) toSave.sendScheduleConfig = s.sendScheduleConfig;
+          if (s.refreshScheduleConfig) toSave.refreshScheduleConfig = s.refreshScheduleConfig;
           await chrome.storage.local.set(toSave);
           if (toSave.sendScheduleConfig) await scheduleSendAlarm(toSave.sendScheduleConfig);
-          if (toSave.refreshScheduleConfig)      await scheduleRefreshAlarm(toSave.refreshScheduleConfig);
+          if (toSave.refreshScheduleConfig) await scheduleRefreshAlarm(toSave.refreshScheduleConfig);
           sendResponse({ success: true, applied: Object.keys(toSave) });
           break;
         }

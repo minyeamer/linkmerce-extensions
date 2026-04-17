@@ -173,7 +173,7 @@ body {
 }
 
 .status-success { color: #03c75a; }
-.status-error   { color: #e74c3c; }
+.status-error { color: #e74c3c; }
 
 /* Toggle */
 .toggle-row {
