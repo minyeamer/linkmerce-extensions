@@ -1882,7 +1882,7 @@ function randomDelay() {
 // 설치 초기화
 chrome.runtime.onInstalled.addListener(function() {
   chrome.storage.local.set({ collectionResults: { products: [], options: [], supplements: [] }, isRunning: false, stopRequested: false });
-  console.log('[BG] NSP-Extractor v3.4.8 설치됨');
+  console.log('[BG] NSP-Extractor 설치됨');
   // 설치 시 저장된 스케줄 설정 복원
   chrome.storage.local.get('scheduleConfig', function({ scheduleConfig }) {
     if (scheduleConfig) applyScheduleAlarm(scheduleConfig);

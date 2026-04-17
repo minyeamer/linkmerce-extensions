@@ -1,6 +1,6 @@
 # Naver-Cookies
 
-> 네이버 세션 쿠키를 주기적으로 추출하여 Slack 채널에 텍스트 파일로 업로드하는 크롬 확장 프로그램 (v0.2.2)
+> 네이버 세션 쿠키를 주기적으로 추출하여 Slack 채널에 텍스트 파일로 업로드하는 크롬 확장 프로그램
 
 Linux 서버(Airflow 등)에서 네이버 로그인 세션이 필요할 때, 실제 브라우저의 쿠키를 Slack을 통해 공유하여 봇 감지 없이 인증을 유지합니다.
 
@@ -98,7 +98,7 @@ JSON 파일로 전체 설정(Slack, 전송 스케줄, 새로고침 스케줄)을
 
 ```
 naver-cookies/
-├── manifest.json       MV3 확장 프로그램 설정 (v0.2.2)
+├── manifest.json       확장 프로그램 설정
 ├── background.js       Service Worker — 쿠키 추출, Slack 업로드, 알람 관리
 ├── popup.html          팝업 UI 구조
 ├── popup.css           스타일 (네이버 그린 테마)
