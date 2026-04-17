@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>네이버 쿠키 업데이트</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+
+    <!-- 헤더 -->
+    <header class="header">
+      <div class="header-left">
+        <span class="logo">🍪</span>
+        <div>
+          <h1 class="title">네이버 쿠키 업데이트</h1>
+          <p class="subtitle">v0.2.2</p>
+        </div>
+      </div>
+      <div id="statusBadge" class="badge">대기중</div>
+    </header>
+
+    <!-- 수동 실행 -->
+    <section class="card">
+      <span class="card-title">수동 실행</span>
+      <div class="btn-row">
+        <button id="sendBtn" class="btn btn-primary">🚀 추출 &amp; 전송</button>
+        <button id="refreshBtn" class="btn btn-secondary">🔄 새로고침만</button>
+      </div>
+      <div id="lastRunStatus" class="status-box mt6" style="display:none"></div>
+    </section>
+
+    <!-- Slack 설정 -->
+    <section class="card">
+      <span class="card-title">🔗 Slack 설정</span>
+      <div class="form-group">
+        <label for="slackToken">Bot Token</label>
+        <input type="password" id="slackToken" placeholder="xoxb-..." autocomplete="off" spellcheck="false">
+      </div>
+      <div class="form-group">
+        <label for="slackChannel">Channel ID</label>
+        <input type="text" id="slackChannel" placeholder="C0XXXXXXXXX" spellcheck="false">
+      </div>
+      <div class="form-group">
+        <label for="slackFilename">파일명 <span class="label-suffix">.txt</span></label>
+        <input type="text" id="slackFilename" placeholder="cookies" spellcheck="false">
+      </div>
+      <p class="text-muted">Bot에 <strong>chat:write</strong>, <strong>files:write</strong> 권한이 필요합니다.</p>
+    </section>
+
+    <!-- 전송 스케줄 -->
+    <section class="card">
+      <div class="toggle-row">
+        <span class="card-title" style="margin-bottom:0">⏰ Slack 전송 스케줄</span>
+        <label class="toggle">
+          <input type="checkbox" id="sendScheduleEnabled">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div id="sendScheduleBody" class="mt6">
+        <!-- 모드 탭 -->
+        <div class="mode-tabs">
+          <button id="modeIntervalBtn" class="mode-tab mode-tab-active" data-mode="interval">간격</button>
+          <button id="modeTimesBtn"    class="mode-tab"                 data-mode="times">시각</button>
+        </div>
+
+        <!-- 간격 모드 패널 -->
+        <div id="sendIntervalPanel">
+          <div class="preset-row">
+            <button class="preset-btn" data-value="120">2시간</button>
+            <button class="preset-btn" data-value="240">4시간</button>
+            <button class="preset-btn" data-value="360">6시간</button>
+            <button class="preset-btn" data-value="720">12시간</button>
+            <button class="preset-btn" data-value="1440">24시간</button>
+          </div>
+          <div class="custom-interval-row">
+            <span class="text-muted">직접 입력:</span>
+            <input type="number" id="sendIntervalInput" min="5" max="1440" step="5" value="1440">
+            <span class="text-muted">분</span>
+            <span class="text-muted" style="margin-left:auto">시작:</span>
+            <input type="time" id="sendBaseTimeInput" value="00:00">
+          </div>
+          <p id="sendIntervalCron" class="cron-hint"></p>
+        </div>
+
+        <!-- 시각 모드 패널 -->
+        <div id="sendTimesPanel" style="display:none">
+          <div id="sendTimeTags" class="time-tags"></div>
+          <div class="add-time-row">
+            <input type="time" id="sendNewTimeInput" value="08:00">
+            <button id="sendAddTimeBtn">+ 추가</button>
+          </div>
+        </div>
+
+        <p id="sendAlarmInfo" class="text-muted mt6"></p>
+      </div>
+    </section>
+
+    <!-- 새로고침 전용 스케줄 -->
+    <section class="card">
+      <div class="toggle-row">
+        <span class="card-title" style="margin-bottom:0">🔄 새로고침 스케줄</span>
+        <label class="toggle">
+          <input type="checkbox" id="refreshEnabled">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div id="refreshBody" class="mt6">
+        <p class="text-muted mb6">Slack 전송 없이 네이버 탭만 새로고침합니다. (세션 유지용)</p>
+        <div class="preset-row">
+          <button class="preset-btn" data-value="15">15분</button>
+          <button class="preset-btn" data-value="30">30분</button>
+          <button class="preset-btn" data-value="60">1시간</button>
+          <button class="preset-btn" data-value="120">2시간</button>
+          <button class="preset-btn" data-value="240">4시간</button>
+          <button class="preset-btn" data-value="360">6시간</button>
+        </div>
+        <div class="custom-interval-row">
+          <span class="text-muted">직접 입력:</span>
+          <input type="number" id="refreshIntervalInput" min="5" max="1440" step="5" value="30">
+          <span class="text-muted">분</span>
+          <span class="text-muted" style="margin-left:auto">시작:</span>
+          <input type="time" id="refreshBaseTimeInput" value="00:00">
+        </div>
+        <p id="refreshIntervalCron" class="cron-hint"></p>
+        <p id="refreshAlarmInfo" class="text-muted mt6"></p>
+      </div>
+    </section>
+
+    <!-- 설정 저장 / 불러오기 -->
+    <section class="card">
+      <span class="card-title">💾 설정 저장 / 불러오기</span>
+      <div class="btn-row">
+        <button id="exportConfigBtn" class="btn btn-secondary">📤 내보내기</button>
+        <button id="importConfigBtn" class="btn btn-secondary">📥 불러오기</button>
+      </div>
+      <input type="file" id="importConfigInput" accept=".json" style="display:none">
+      <p id="configMsg" class="mt6" style="display:none"></p>
+    </section>
+
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

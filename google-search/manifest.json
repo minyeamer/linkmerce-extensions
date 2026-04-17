@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "구글 검색 자동화",
+  "version": "0.3.1",
+  "description": "여러 키워드를 순차 검색하여 Google 검색 결과를 하나의 CSV 또는 JSON 파일로 자동 수집합니다.",
+  "permissions": ["activeTab", "scripting", "downloads", "storage", "tabs"],
+  "host_permissions": [
+    "https://www.google.com/*",
+    "https://www.google.co.kr/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.google.com/search*",
+        "https://www.google.co.kr/search*"
+      ],
+      "js": ["content_script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "구글 검색 자동화",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

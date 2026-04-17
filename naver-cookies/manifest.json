@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "네이버 쿠키 업데이트",
+  "version": "0.2.2",
+  "description": "네이버 쿠키를 주기적으로 추출하여 Slack 채널에 전송합니다",
+
+  "permissions": [
+    "cookies",
+    "alarms",
+    "storage",
+    "tabs"
+  ],
+
+  "host_permissions": [
+    "https://*.naver.com/*",
+    "http://*.naver.com/*",
+    "https://slack.com/*",
+    "https://files.slack.com/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

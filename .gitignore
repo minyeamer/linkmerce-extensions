@@ -1,0 +1,16 @@
+# Build output
+dist/
+
+# Node.js
+node_modules/
+package-lock.json
+
+# OS files
+.DS_Store
+Thumbs.db
+env/
+temp/
+
+# Chrome Extension build files
+*.pem
+*.crx

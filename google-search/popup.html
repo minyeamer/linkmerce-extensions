@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>구글 검색 자동화</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <div>
+        <div class="title">구글 검색 자동화</div>
+        <div class="subtitle">여러 키워드를 순차 검색해 한 파일로 저장합니다.</div>
+      </div>
+      <div id="statusBadge" class="badge badge-idle">대기중</div>
+    </header>
+
+    <section class="card">
+      <div class="card-title">키워드 목록</div>
+      <textarea id="queries" class="textarea" placeholder="키워드1&#10;키워드2"></textarea>
+      <p class="card-hint">줄바꿈 기준으로 여러 키워드를 입력하세요. 파일명에는 키워드를 넣지 않고, 결과 데이터 내부의 <code>query</code> 열에 저장합니다.</p>
+    </section>
+
+    <section class="card">
+      <div class="card-title">수집 설정</div>
+      <div class="row">
+        <div>
+          <label class="small" for="delayMinMs">최소 대기(ms)</label>
+          <input id="delayMinMs" class="input" type="number" min="0" max="60000" value="1200" />
+        </div>
+        <div>
+          <label class="small" for="delayMaxMs">최대 대기(ms)</label>
+          <input id="delayMaxMs" class="input" type="number" min="0" max="60000" value="2200" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <div>
+          <label class="small" for="maxPages">최대 페이지 수</label>
+          <input id="maxPages" class="input" type="number" min="1" max="1000" value="20" />
+        </div>
+        <div></div>
+      </div>
+      <label class="checkbox-row">
+        <input id="useAllPages" type="checkbox" checked>
+        <span>다음 페이지가 없어질 때까지 전부 수집 시도</span>
+      </label>
+      <p class="card-hint">각 페이지 이동 전마다 최소~최대 범위 사이의 랜덤 대기 시간을 적용합니다. "전부 수집"을 켜면 다음 링크가 있는 동안 계속 이동합니다.</p>
+    </section>
+
+    <section class="card">
+      <div class="card-title">내보내기 설정</div>
+      <div class="row">
+        <div>
+          <label class="small" for="baseFilename">파일명</label>
+          <input id="baseFilename" class="input" type="text" value="검색결과" />
+        </div>
+        <div>
+          <label class="small" for="exportFormat">형식</label>
+          <select id="exportFormat" class="input">
+            <option value="csv">CSV</option>
+            <option value="json">JSON</option>
+          </select>
+        </div>
+      </div>
+      <p class="card-hint">기본 저장 파일명은 <code>검색결과.csv</code> 또는 <code>검색결과.json</code> 입니다. 브라우저에서 직접 <code>.xlsx</code>를 안정적으로 만드는 대신, CSV를 Excel에서 바로 열 수 있게 우선 지원합니다.</p>
+    </section>
+
+    <section class="card" id="progressSection" style="display:none">
+      <div class="inline">
+        <div class="card-title" style="margin-bottom:0">진행 상황</div>
+        <div id="progressText" class="small">0 / 0</div>
+      </div>
+      <div class="progress-track"><div id="progressBar" class="progress-fill"></div></div>
+      <div id="status" class="status" style="margin-top:8px"></div>
+    </section>
+
+    <section class="card">
+      <div class="inline">
+        <div class="card-title" style="margin-bottom:0">결과 다시 받기</div>
+        <div id="lastResultMeta" class="small">저장된 결과 없음</div>
+      </div>
+      <p class="card-hint">자동 다운로드가 안 되더라도 가장 최근 수집 결과를 확장 내부에 기억합니다.</p>
+      <div class="actions">
+        <button id="downloadLastCsvBtn" class="btn btn-secondary">최근 결과 CSV</button>
+        <button id="downloadLastJsonBtn" class="btn btn-secondary">최근 결과 JSON</button>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button id="startBtn" class="btn btn-primary">수집 시작</button>
+      <button id="stopBtn" class="btn btn-danger" style="display:none">수집 중지</button>
+      <button id="resumeBtn" class="btn btn-warning" style="display:none">이어서 수집</button>
+      <button id="saveSettingsBtn" class="btn btn-secondary">설정 저장</button>
+    </div>
+    <div class="actions" style="margin-top:6px;">
+      <button id="resetBtn" class="btn btn-reset" title="수집 상태가 멈춰 있을 때 모든 진행 상태를 초기화합니다">⟳ 진행 상태 초기화</button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

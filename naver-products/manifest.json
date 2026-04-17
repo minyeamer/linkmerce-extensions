@@ -1,0 +1,61 @@
+{
+  "manifest_version": 3,
+  "name": "네이버 상품 ETL",
+  "version": "3.4.8",
+  "description": "네이버 스마트스토어 상품 데이터를 추출합니다",
+
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "activeTab",
+    "downloads",
+    "cookies",
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "proxy",
+    "webRequest",
+    "webRequestAuthProvider",
+    "alarms"
+  ],
+
+  "host_permissions": [
+    "https://smartstore.naver.com/*",
+    "https://brand.naver.com/*",
+    "https://m.smartstore.naver.com/*",
+    "https://m.brand.naver.com/*",
+    "https://slack.com/*",
+    "https://files.slack.com/*"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "NSP-Extractor"
+  },
+
+  "declarative_net_request": {
+    "rule_resources": []
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["channels.json"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

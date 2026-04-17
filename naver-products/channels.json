@@ -1,0 +1,1597 @@
+{
+  "homekeeping": {
+    "channelUid": "2sWDwCdjPUlBLAvblI87u",
+    "isBrand": true,
+    "mallSeq": 526927
+  },
+  "nutricore": {
+    "channelUid": "2sWDvqFWD5jl42DXVlp7R",
+    "isBrand": true,
+    "mallSeq": 358231
+  },
+  "dr_lean": {
+    "channelUid": "2sWDy1dczoZprTMNZ95Ze",
+    "isBrand": true,
+    "mallSeq": 967633
+  },
+  "ckdhc": {
+    "channelUid": "2sWDvS9vXNeYlpogTafQA",
+    "isBrand": true,
+    "mallSeq": 202775
+  },
+  "koreaeundanhc": {
+    "channelUid": "2sWDz4Tu0LD8HPbMgRad2",
+    "isBrand": true,
+    "mallSeq": 1444796
+  },
+  "thereal": {
+    "channelUid": "2sWDw46PnPg9onOjxUyye",
+    "isBrand": true,
+    "mallSeq": 442918
+  },
+  "chongkundang": {
+    "channelUid": "2sWE0MhpKtvSpdM3AcrTB",
+    "isBrand": true,
+    "mallSeq": 3917198
+  },
+  "haroutine": {
+    "channelUid": "2sWE0C283pjZZSB5kYeuI",
+    "isBrand": true,
+    "mallSeq": 3753168
+  },
+  "lactiv": {
+    "channelUid": "2sWDzeH2SD99RPH184ngM",
+    "isBrand": true,
+    "mallSeq": 2528238
+  },
+  "webiom": {
+    "channelUid": "2sWDxQDJV6sdStJSqdU6j",
+    "isBrand": true,
+    "mallSeq": 801228
+  },
+  "frombio": {
+    "channelUid": "2sWDvul5oXm2BVOYBzjNc",
+    "isBrand": true,
+    "mallSeq": 384589
+  },
+  "nutrione": {
+    "channelUid": "2sWDvyGTLp9vyNEJLrXKy",
+    "isBrand": true,
+    "mallSeq": 406978
+  },
+  "gnm": {
+    "channelUid": "2sWDvSGYchmWvGL1bkkT6",
+    "isBrand": true,
+    "mallSeq": 202062
+  },
+  "jyns": {
+    "channelUid": "2sWE1Gwz05GGVRMqKiuuT",
+    "isBrand": true,
+    "mallSeq": 5282424
+  },
+  "mypouch": {
+    "channelUid": "2sWDvg6TwTqF58jBfmI7Z",
+    "isBrand": true,
+    "mallSeq": 294192
+  },
+  "estherformula": {
+    "channelUid": "2sWDwqYMcIZN3Ttg85V3x",
+    "isBrand": true,
+    "mallSeq": 681720
+  },
+  "truen": {
+    "channelUid": "2sWDzWzVhdULG0MkkwjiO",
+    "isBrand": false,
+    "mallSeq": 2297668
+  },
+  "solgar": {
+    "channelUid": "2sWE0CWvxLYyWnJ546Fnn",
+    "isBrand": true,
+    "mallSeq": 3568878
+  },
+  "blackmoreskorea": {
+    "channelUid": "2sWDxRMH7X1yZT4aMV6kX",
+    "isBrand": false,
+    "mallSeq": 805238
+  },
+  "healiovita": {
+    "channelUid": "2sWDx9ZyIympacFcdVj2R",
+    "isBrand": false,
+    "mallSeq": 741443
+  },
+  "ponu": {
+    "channelUid": "2sWDxkvhrpgCerN0T8JcL",
+    "isBrand": true,
+    "mallSeq": 890670
+  },
+  "dwhealthy": {
+    "channelUid": "2sWDyrXXzQLqNcFTXliO7",
+    "isBrand": true,
+    "mallSeq": 1225810
+  },
+  "dwmall": {
+    "channelUid": "2sWDyOkCToDnW4N0SgUQy",
+    "isBrand": true,
+    "mallSeq": 1079418
+  },
+  "bnrmall": {
+    "channelUid": "2sWDxoZTNQtcRIULdZaLp",
+    "isBrand": true,
+    "mallSeq": 906722
+  },
+  "denps": {
+    "channelUid": "2sWDvwX94yWtrYjgBhkeP",
+    "isBrand": true,
+    "mallSeq": 397098
+  },
+  "yuhan": {
+    "channelUid": "2sWDzUcPfmyrPyKtaYSDm",
+    "isBrand": true,
+    "mallSeq": 2221700
+  },
+  "radiwell": {
+    "channelUid": "2sWDx9xevCGvlEWrs42ra",
+    "isBrand": true,
+    "mallSeq": 164423
+  },
+  "fullight": {
+    "channelUid": "2sWDzf2zv3VgnS1xZkD4P",
+    "isBrand": true,
+    "mallSeq": 2547798
+  },
+  "proteeone": {
+    "channelUid": "2sWDzTLkJEuOuO7QLdDXp",
+    "isBrand": true,
+    "mallSeq": 2186590
+  },
+  "shakebaby": {
+    "channelUid": "2sWDytUW3RTAeznLEuaDT",
+    "isBrand": true,
+    "mallSeq": 1235741
+  },
+  "hlbpharma": {
+    "channelUid": "2sWE1sYnlcNxGZncDYAmb",
+    "isBrand": true,
+    "mallSeq": 7268665
+  },
+  "eatnayo": {
+    "channelUid": "2sWDzKCPXDEsrWRiZzNaC",
+    "isBrand": true,
+    "mallSeq": 1922509
+  },
+  "nutrimore": {
+    "channelUid": "2sWDzemuuKZClqbp0leW1",
+    "isBrand": true,
+    "mallSeq": 2206709
+  },
+  "poveramall": {
+    "channelUid": "2sWE1HQQOpVUQemjXfIQT",
+    "isBrand": false,
+    "mallSeq": 5937736
+  },
+  "ph365": {
+    "channelUid": "2sWDwlcZLn1iF7viJecUm",
+    "isBrand": true,
+    "mallSeq": 657482
+  },
+  "younglong": {
+    "channelUid": "2sWDxy0YBgvfRhJeSG7WQ",
+    "isBrand": true,
+    "mallSeq": 950161
+  },
+  "tophealth": {
+    "channelUid": "2sWDvRtANK5fWCFvIUSZ4",
+    "isBrand": true,
+    "mallSeq": 194039
+  },
+  "switch-on": {
+    "channelUid": "2sWE0JT1JkPkl6syoH3hG",
+    "isBrand": true,
+    "mallSeq": 3802929
+  },
+  "eatthefit": {
+    "channelUid": "2sWE07j8XxiwPfBbdasX0",
+    "isBrand": true,
+    "mallSeq": 3418289
+  },
+  "benope": {
+    "channelUid": "2sWDyEkPwoBgwldR0nlmj",
+    "isBrand": true,
+    "mallSeq": 1029321
+  },
+  "dradol": {
+    "channelUid": "2sWDwvCoJuqXId6QlWZug",
+    "isBrand": true,
+    "mallSeq": 702339
+  },
+  "aghealth": {
+    "channelUid": "2sWDvPRg4rvxJfodfWGTw",
+    "isBrand": true,
+    "mallSeq": 174786
+  },
+  "dr_phyto": {
+    "channelUid": "2sWDyUQUbLwRPKnSUgQDd",
+    "isBrand": true,
+    "mallSeq": 1107223
+  },
+  "chundamon": {
+    "channelUid": "2sWE1MkILS1cWu6cV0dGi",
+    "isBrand": true,
+    "mallSeq": 6145454
+  },
+  "hongdongbichaek": {
+    "channelUid": "2sWE0TzG7rbGu58IZ0GLB",
+    "isBrand": true,
+    "mallSeq": 4136889
+  },
+  "ginitreasure": {
+    "channelUid": "2sWDxuF5HzVjMlxbP6Y3L",
+    "isBrand": true,
+    "mallSeq": 932213
+  },
+  "goldhome": {
+    "channelUid": "2sWDwoKKcOgeLGbRJ1H7a",
+    "isBrand": true,
+    "mallSeq": 671050
+  },
+  "mpys": {
+    "channelUid": "2sWDwgMP2aLh3mAk8lJY8",
+    "isBrand": true,
+    "mallSeq": 633375
+  },
+  "soonsoofood": {
+    "channelUid": "2sWDvZeuVlH5ZAKiDLXc9",
+    "isBrand": true,
+    "mallSeq": 251713
+  },
+  "greengrassfarms": {
+    "channelUid": "2sWE08jKJG8pm8UC0p3xY",
+    "isBrand": true,
+    "mallSeq": 3450380
+  },
+  "xido": {
+    "channelUid": "2sWE0VRoh8zQDE7fZFEvJ",
+    "isBrand": false,
+    "mallSeq": 2418888
+  },
+  "organicmaru": {
+    "channelUid": "2sWDvinl21sRWQh9oSOM8",
+    "isBrand": true,
+    "mallSeq": 309142
+  },
+  "naturedream": {
+    "channelUid": "2sWDvnfqnt6wdMSRkwqiF",
+    "isBrand": true,
+    "mallSeq": 343606
+  },
+  "foodbucket": {
+    "channelUid": "2sWDvS9vjmZDjbcrFnNDi",
+    "isBrand": true,
+    "mallSeq": 202337
+  },
+  "cj_wellcare": {
+    "channelUid": "2sWE04mkY3xv6AYSZxJM5",
+    "isBrand": true,
+    "mallSeq": 3332028
+  },
+  "nutone": {
+    "channelUid": "2sWE0wbswkRV5DxrBZca1",
+    "isBrand": true,
+    "mallSeq": 5172134
+  },
+  "bodydoctors": {
+    "channelUid": "2sWDxc2MazWhBtDWGVDSN",
+    "isBrand": true,
+    "mallSeq": 851934
+  },
+  "cenovis": {
+    "channelUid": "2sWDw4XPxjouU1wyp4Nhs",
+    "isBrand": true,
+    "mallSeq": 456009
+  },
+  "duolac": {
+    "channelUid": "2sWDvoC7AzO72hK7pkHQe",
+    "isBrand": true,
+    "mallSeq": 347655
+  },
+  "desimone": {
+    "channelUid": "2sWDvlcvdah1iROaNx2qN",
+    "isBrand": true,
+    "mallSeq": 328263
+  },
+  "labonlab": {
+    "channelUid": "2sWDyMIoMQbGhrQuRHl5X",
+    "isBrand": true,
+    "mallSeq": 1067290
+  },
+  "drrootem": {
+    "channelUid": "2ssmUkJUrZXgPUIWsSwKj",
+    "isBrand": true,
+    "mallSeq": 8270734
+  },
+  "grimeal": {
+    "channelUid": "2sWDwsUwvZipjrEZVpmHZ",
+    "isBrand": true,
+    "mallSeq": 689837
+  },
+  "nzorigin": {
+    "channelUid": "2sWDvTom1VXVYMZ10wmeX",
+    "isBrand": true,
+    "mallSeq": 209936
+  },
+  "daewonhealth": {
+    "channelUid": "2sWDwYuLLjZl8L2pTci9W",
+    "isBrand": true,
+    "mallSeq": 596405
+  },
+  "naturalplus": {
+    "channelUid": "2sWDw2rtbYgzfa3mY7NiD",
+    "isBrand": true,
+    "mallSeq": 438387
+  },
+  "doctorprogram": {
+    "channelUid": "2sWE1ZcGaLU0FVpswbj0e",
+    "isBrand": true,
+    "mallSeq": 558168
+  },
+  "presolar": {
+    "channelUid": "2sWDyWHVzoIZi1K4vbtas",
+    "isBrand": true,
+    "mallSeq": 1117760
+  },
+  "momsformula": {
+    "channelUid": "2sWE11xDeR7OwNzXDUky6",
+    "isBrand": true,
+    "mallSeq": 5370795
+  },
+  "cp": {
+    "channelUid": "2sWDyIcPl5LIFNmrkroHb",
+    "isBrand": true,
+    "mallSeq": 199591
+  },
+  "vitono": {
+    "channelUid": "2tgXRSGxwoz6tWVHPTEv9",
+    "isBrand": true,
+    "mallSeq": 8952914
+  },
+  "naturemadestore": {
+    "channelUid": "2v97rJfmFlvrQlxiRqutP",
+    "isBrand": true,
+    "mallSeq": 10117536
+  },
+  "funeat": {
+    "channelUid": "2sWDvigLWT74HWFWHD5bc",
+    "isBrand": true,
+    "mallSeq": 311053
+  },
+  "ydynutrition": {
+    "channelUid": "2sWE20DEvh7onC9LGoPzr",
+    "isBrand": true,
+    "mallSeq": 7530756
+  },
+  "centrum": {
+    "channelUid": "2sWDvmemD4vSI2sKwD6cf",
+    "isBrand": true,
+    "mallSeq": 339120
+  },
+  "celltrioninnerlab": {
+    "channelUid": "2vaxXYB6URfLhKH42nMW2",
+    "isBrand": true,
+    "mallSeq": 10375625
+  },
+  "dongwha_healthcare": {
+    "channelUid": "2uVB4E6d1KyazHQIQVLI4",
+    "isBrand": true,
+    "mallSeq": 9606835
+  },
+  "vivliv": {
+    "channelUid": "2sWE09VZsQ99ekZzPsh0r",
+    "isBrand": true,
+    "mallSeq": 3473010
+  },
+  "life_b": {
+    "channelUid": "2sWE2BYGgcoLO019Sv2In",
+    "isBrand": true,
+    "mallSeq": 6294575
+  },
+  "mealit": {
+    "channelUid": "2sWE0IdS2kJOwols40Q4o",
+    "isBrand": true,
+    "mallSeq": 5281644
+  },
+  "fillresearch": {
+    "channelUid": "2sWE29b0DExfa8miR7IAE",
+    "isBrand": true,
+    "mallSeq": 7836825
+  },
+  "grainon": {
+    "channelUid": "2sWE1N99YLYd24dveLgKs",
+    "isBrand": true,
+    "mallSeq": 6156554
+  },
+  "allbarun": {
+    "channelUid": "2sWE0zu6PTSnmLtS1pHFQ",
+    "isBrand": true,
+    "mallSeq": 5296187
+  },
+  "mhwheyprotein": {
+    "channelUid": "2sWDvhgLyD1XFzXdfGWO0",
+    "isBrand": true,
+    "mallSeq": 303058
+  },
+  "hyeinseo": {
+    "channelUid": "2sWDwA1QmvDYz7yHsqc7K",
+    "isBrand": false,
+    "mallSeq": 480970
+  },
+  "morenature": {
+    "channelUid": "2sWDzIx78ox51uWXngmk3",
+    "isBrand": true,
+    "mallSeq": 554319
+  },
+  "presento": {
+    "channelUid": "2sWDvovpfaYQLK7HlPXqJ",
+    "isBrand": false,
+    "mallSeq": 350007
+  },
+  "handok": {
+    "channelUid": "2sWDwT3QWmJwcosZUtF9X",
+    "isBrand": true,
+    "mallSeq": 568492
+  },
+  "chungdamnutrition": {
+    "channelUid": "2sWDvz7JISAV7b8SHOASV",
+    "isBrand": false,
+    "mallSeq": 413751
+  },
+  "odang-": {
+    "channelUid": "2yPSGyfq8ah95V0KEPde9",
+    "isBrand": false,
+    "mallSeq": 11973585
+  },
+  "getvenus": {
+    "channelUid": "2sWE08xMgEZW7hX2sPaeQ",
+    "isBrand": false,
+    "mallSeq": 3457018
+  },
+  "drmins": {
+    "channelUid": "2sWE1qvcZOvLD5Jvahr5K",
+    "isBrand": false,
+    "mallSeq": 7215094
+  },
+  "mildday": {
+    "channelUid": "2sWE0fQcMI8URmMvMqZnd",
+    "isBrand": true,
+    "mallSeq": 4545800
+  },
+  "smartstore_essence": {
+    "channelUid": "2sWDzTHYMEZakbfMCY9S9",
+    "isBrand": false,
+    "mallSeq": 7507194
+  },
+  "allyear": {
+    "channelUid": "2sWDxgPABOtcBHfT3xiMB",
+    "isBrand": false,
+    "mallSeq": 871826
+  },
+  "misofm": {
+    "channelUid": "2sWE0IIyjuXRwUsepEweZ",
+    "isBrand": false,
+    "mallSeq": 3763169
+  },
+  "taylormall": {
+    "channelUid": "2sWDyhyTRDu9m33XmDU3P",
+    "isBrand": true,
+    "mallSeq": 1176209
+  },
+  "dalsim": {
+    "channelUid": "2sWDxSxbln2laK8rBChoT",
+    "isBrand": true,
+    "mallSeq": 812553
+  },
+  "gbnf-market": {
+    "channelUid": "2sWDvsXq6NjYXo50L1TTv",
+    "isBrand": false,
+    "mallSeq": 370336
+  },
+  "barocorporation": {
+    "channelUid": "2sWDxlJt1RJPWK9BVNFid",
+    "isBrand": false,
+    "mallSeq": 892897
+  },
+  "josunbichaek": {
+    "channelUid": "2sWDz1fzrzRQo5uvLo4k6",
+    "isBrand": true,
+    "mallSeq": 1356844
+  },
+  "bonjungsim": {
+    "channelUid": "2utElKdAwzRhzGnnkHa6M",
+    "isBrand": true,
+    "mallSeq": 9916934
+  },
+  "biorga": {
+    "channelUid": "2sWDwvCo9Jb3keH9MYSnJ",
+    "isBrand": true,
+    "mallSeq": 702349
+  },
+  "renfit": {
+    "channelUid": "30ALo1MABnUPT3ZCOKDsW",
+    "isBrand": true,
+    "mallSeq": 12295041
+  },
+  "bareunnutri": {
+    "channelUid": "2sWDvbV9x1rQLLDfnq9ZP",
+    "isBrand": true,
+    "mallSeq": 440712
+  },
+  "jdhealth": {
+    "channelUid": "2sWDvde1QdsUegkxcoXdU",
+    "isBrand": true,
+    "mallSeq": 278094
+  },
+  "lovejina12_": {
+    "channelUid": "2yUIMgg56uBneuCuM77G8",
+    "isBrand": false,
+    "mallSeq": 12018724
+  },
+  "minix": {
+    "channelUid": "2sWDzmtiPnXZvROLyqVPy",
+    "isBrand": true,
+    "mallSeq": 2784868
+  },
+  "de_elisa_shop": {
+    "channelUid": "2yNAcTXHXb9aoAmOnL9Sc",
+    "isBrand": false,
+    "mallSeq": 11955397
+  },
+  "miming_": {
+    "channelUid": "2sWE1679H9JfLYjukhVAd",
+    "isBrand": false,
+    "mallSeq": 5520364
+  },
+  "ccoy": {
+    "channelUid": "2yVcnnsb2jGWsa6YHtmyh",
+    "isBrand": false,
+    "mallSeq": 12030736
+  },
+  "livingcrafts": {
+    "channelUid": "2sWDvtEvfuSXW4HMsDXVO",
+    "isBrand": true,
+    "mallSeq": 373113
+  },
+  "astonish": {
+    "channelUid": "2sWDwojmCcOLaqCtlNiOv",
+    "isBrand": true,
+    "mallSeq": 673345
+  },
+  "lgcaremall": {
+    "channelUid": "2sWDvPeLsBgMuaXOHBu2h",
+    "isBrand": true,
+    "mallSeq": 186622
+  },
+  "inoxo": {
+    "channelUid": "2yDXvPgSner9aHHlbDHyM",
+    "isBrand": false,
+    "mallSeq": 11868864
+  },
+  "montbl": {
+    "channelUid": "2sWDvWkHYFdZDZMtXBshG",
+    "isBrand": false,
+    "mallSeq": 227788
+  },
+  "sallimso": {
+    "channelUid": "2sWDyZ9uGfzfmOliBOoIh",
+    "isBrand": false,
+    "mallSeq": 1061601
+  },
+  "froschkorea": {
+    "channelUid": "2sWDxXQkAGgHI5l1ZCuCU",
+    "isBrand": true,
+    "mallSeq": 831525
+  },
+  "ecodoo": {
+    "channelUid": "2sWDwERdkfCU66oHirN7L",
+    "isBrand": false,
+    "mallSeq": 508583
+  },
+  "poliboy": {
+    "channelUid": "2sWDyq6FxPcocjYCTl886",
+    "isBrand": false,
+    "mallSeq": 1216681
+  },
+  "drpuri": {
+    "channelUid": "2sWDxUu6388tCILUZyigJ",
+    "isBrand": true,
+    "mallSeq": 820778
+  },
+  "thepinkstuff": {
+    "channelUid": "2sWE02Id7YDzfyqFTYe7P",
+    "isBrand": true,
+    "mallSeq": 6075444
+  },
+  "tidywater": {
+    "channelUid": "2tduReXuoh6dR5JCMKDTV",
+    "isBrand": false,
+    "mallSeq": 8908094
+  },
+  "koalaecokorea": {
+    "channelUid": "2sWDxy4LvZSuSQwGsD9mA",
+    "isBrand": false,
+    "mallSeq": 950598
+  },
+  "lavikit": {
+    "channelUid": "2sWE1j47T5KYhgi8QunEp",
+    "isBrand": true,
+    "mallSeq": 6941015
+  },
+  "prayforeat": {
+    "channelUid": "2sWDyCSydHGuWuAbrVzTa",
+    "isBrand": false,
+    "mallSeq": 1018923
+  },
+  "mamaforest": {
+    "channelUid": "2sWDxQiD6k2Rp1jNSYIND",
+    "isBrand": true,
+    "mallSeq": 803763
+  },
+  "swellday": {
+    "channelUid": "2sWDxzKv8RCGxGy1iNaaF",
+    "isBrand": true,
+    "mallSeq": 1032813
+  },
+  "lavoir": {
+    "channelUid": "2sWE0AgUYZRJlNSVNVaOy",
+    "isBrand": true,
+    "mallSeq": 3512498
+  },
+  "bluewash": {
+    "channelUid": "2sWDyevGZdO3inTep0JdM",
+    "isBrand": false,
+    "mallSeq": 1161458
+  },
+  "onstay": {
+    "channelUid": "2sWDxzH1Htj4SEmEkkHPI",
+    "isBrand": false,
+    "mallSeq": 956068
+  },
+  "ilbia": {
+    "channelUid": "2sWE0nmczAO3Fb3vULxbU",
+    "isBrand": false,
+    "mallSeq": 4857744
+  },
+  "hae_": {
+    "channelUid": "2sWDzZEE0wEY5EsuaoDhg",
+    "isBrand": false,
+    "mallSeq": 2370578
+  },
+  "organicground": {
+    "channelUid": "2sWDy8eULqaLSq5eYdPVL",
+    "isBrand": true,
+    "mallSeq": 999623
+  },
+  "god-sungby": {
+    "channelUid": "2tWIX9VlP4TF5ccsYD7Pv",
+    "isBrand": false,
+    "mallSeq": 8801175
+  },
+  "rmabear": {
+    "channelUid": "2sWE2CfrxVRWKpikNjvry",
+    "isBrand": false,
+    "mallSeq": 7915165
+  },
+  "redroot": {
+    "channelUid": "2u7kesAqrmI4yIGmmjJNh",
+    "isBrand": false,
+    "mallSeq": 9317104
+  },
+  "blanc101": {
+    "channelUid": "2sWDyWkB4RXLiMgaCPI9X",
+    "isBrand": true,
+    "mallSeq": 1120074
+  },
+  "wlckorea": {
+    "channelUid": "2sWDvySGaaWJ7jtdTO3Xe",
+    "isBrand": true,
+    "mallSeq": 407547
+  },
+  "laundrydoctor": {
+    "channelUid": "2tSE5QxQI9D7BzGvBwpTI",
+    "isBrand": false,
+    "mallSeq": 8742764
+  },
+  "happytails": {
+    "channelUid": "2sWDvzlrTEkYSNaTMu0c9",
+    "isBrand": true,
+    "mallSeq": 418223
+  },
+  "le-jour": {
+    "channelUid": "2wgHRpvg5xq3ggLR0uTH6",
+    "isBrand": true,
+    "mallSeq": 11036084
+  },
+  "vertblanc": {
+    "channelUid": "2sWE01i4hzfQPz3isJhZq",
+    "isBrand": true,
+    "mallSeq": 3228558
+  },
+  "thebutler": {
+    "channelUid": "2sWDwV9MtmzO0gX7C1wJJ",
+    "isBrand": false,
+    "mallSeq": 579204
+  },
+  "orphea": {
+    "channelUid": "2sWDwqgMKNuuJVQCvREuD",
+    "isBrand": false,
+    "mallSeq": 687015
+  },
+  "dideber": {
+    "channelUid": "2sWE1PvUnUxMS9UWFEXAT",
+    "isBrand": false,
+    "mallSeq": 6255424
+  },
+  "arohave": {
+    "channelUid": "2sWE1vnbvgDTjr4T9dSz1",
+    "isBrand": false,
+    "mallSeq": 7373434
+  },
+  "wewehomekr": {
+    "channelUid": "2sa58QG0iX1wgBcWAhk1D",
+    "isBrand": false,
+    "mallSeq": 8033247
+  },
+  "allgoodlife": {
+    "channelUid": "2sWDyNNyOc8ZxJlgNUhTf",
+    "isBrand": false,
+    "mallSeq": 905209
+  },
+  "pure_scent": {
+    "channelUid": "2sWE1CguRW3ehOQvp3v1D",
+    "isBrand": false,
+    "mallSeq": 5767954
+  },
+  "begineco": {
+    "channelUid": "2sWE1TTbk3CCwhB1gyuv8",
+    "isBrand": false,
+    "mallSeq": 6384745
+  },
+  "akofficial": {
+    "channelUid": "2sWDz5slH6sPUkVteKgcX",
+    "isBrand": true,
+    "mallSeq": 1485316
+  },
+  "lifecleanlab": {
+    "channelUid": "2sWE1SL885SiocQVfQpvS",
+    "isBrand": false,
+    "mallSeq": 6339906
+  },
+  "malldoudou": {
+    "channelUid": "2sWDyWmc1LnvRflQ31WwA",
+    "isBrand": false,
+    "mallSeq": 1120214
+  },
+  "wechik": {
+    "channelUid": "2sWDzYidtdtFmVMsu9ZZ0",
+    "isBrand": true,
+    "mallSeq": 2352639
+  },
+  "sutelier": {
+    "channelUid": "2uQI5xKp7wmijPJ4usyHa",
+    "isBrand": false,
+    "mallSeq": 9569184
+  },
+  "familyground": {
+    "channelUid": "2sWDyKV0G83otlwKdxfXW",
+    "isBrand": false,
+    "mallSeq": 1057745
+  },
+  "everycareom": {
+    "channelUid": "2sWDvYyJJOHWY29l6RXwK",
+    "isBrand": false,
+    "mallSeq": 247178
+  },
+  "lmot": {
+    "channelUid": "2sWDzUgbjXqsE3kBejxsE",
+    "isBrand": true,
+    "mallSeq": 2220089
+  },
+  "allguard_life": {
+    "channelUid": "2sWDzHwizN4ESRd1m5Vyt",
+    "isBrand": false,
+    "mallSeq": 1849677
+  },
+  "babybrezza": {
+    "channelUid": "2sWDx20tjS278KMvILsiD",
+    "isBrand": true,
+    "mallSeq": 746168
+  },
+  "bonocom": {
+    "channelUid": "2sWE0oZN7Dn0uRvDjyOHy",
+    "isBrand": false,
+    "mallSeq": 4882344
+  },
+  "se-su": {
+    "channelUid": "2sWDvjWV4UgHdt1eyvwJ4",
+    "isBrand": false,
+    "mallSeq": 316966
+  },
+  "ouv-e": {
+    "channelUid": "2sWDylJoiqIaQ9VwXfa2n",
+    "isBrand": false,
+    "mallSeq": 1193826
+  },
+  "mkolsen": {
+    "channelUid": "2sWE1KkmrVLI2k0j7JHjh",
+    "isBrand": true,
+    "mallSeq": 6066294
+  },
+  "hetras": {
+    "channelUid": "2sWE0PygSTrrQelvmXHj5",
+    "isBrand": true,
+    "mallSeq": 4005858
+  },
+  "lemamon": {
+    "channelUid": "2wubEM4KlrpAkHK47oTCw",
+    "isBrand": false,
+    "mallSeq": 11171984
+  },
+  "sofficestore": {
+    "channelUid": "2sWE26tpD9H8Y0whbh7ro",
+    "isBrand": false,
+    "mallSeq": 7390365
+  },
+  "onelov": {
+    "channelUid": "2sWE1uroHo1tXiUIqh9rZ",
+    "isBrand": false,
+    "mallSeq": 7344184
+  },
+  "sosoeazy": {
+    "channelUid": "2sWDvoJcQFgfiHT7ZiAYO",
+    "isBrand": false,
+    "mallSeq": 348621
+  },
+  "ilooo": {
+    "channelUid": "2sWDz71KvS0rvpwcbg38k",
+    "isBrand": false,
+    "mallSeq": 1520786
+  },
+  "gbbrand": {
+    "channelUid": "2sWE2CcMOtsSDI0qjvDGa",
+    "isBrand": true,
+    "mallSeq": 7911266
+  },
+  "vliso": {
+    "channelUid": "2tnwx2CrVqKoQk87hJDBE",
+    "isBrand": false,
+    "mallSeq": 9056665
+  },
+  "ts_mall": {
+    "channelUid": "2sWDvbuJ0h8f5jUz5Ic4c",
+    "isBrand": true,
+    "mallSeq": 266081
+  },
+  "kundal": {
+    "channelUid": "2sWDw5lLySq7co8HrKopL",
+    "isBrand": true,
+    "mallSeq": 454732
+  },
+  "allthen": {
+    "channelUid": "2sWDxSK24dOKz8QymKaMw",
+    "isBrand": true,
+    "mallSeq": 809966
+  },
+  "homevely": {
+    "channelUid": "2sWDw9WiynCgKPJqgZBbY",
+    "isBrand": false,
+    "mallSeq": 479836
+  },
+  "hometner": {
+    "channelUid": "2sWDwCdpVFFSIWYd7ay0Y",
+    "isBrand": false,
+    "mallSeq": 499182
+  },
+  "ondasoop": {
+    "channelUid": "2sWE08rPrO7kFgkl7So4o",
+    "isBrand": true,
+    "mallSeq": 3455599
+  },
+  "ykstore": {
+    "channelUid": "2sWDxgV0Tp8QUojmp1JVn",
+    "isBrand": true,
+    "mallSeq": 872065
+  },
+  "bouquetgarni": {
+    "channelUid": "2sWE0DMzFpOimGf6Uzi3z",
+    "isBrand": true,
+    "mallSeq": 3599430
+  },
+  "daehanjijangsu": {
+    "channelUid": "2sWDvxRaksTarObNnikkl",
+    "isBrand": false,
+    "mallSeq": 642900
+  },
+  "parkfood_kr": {
+    "channelUid": "2xfKyM2Oiy5UXziHOT4kC",
+    "isBrand": false,
+    "mallSeq": 11589395
+  },
+  "chunhoncare": {
+    "channelUid": "2sWDxJQOIU9yggKLVNt3u",
+    "isBrand": true,
+    "mallSeq": 674492
+  },
+  "samstar3": {
+    "channelUid": "2wMyiR9PNXL8aWRl6ySji",
+    "isBrand": false,
+    "mallSeq": 10857817
+  },
+  "sunlightmall": {
+    "channelUid": "2sWDvgVX2KgU4paVm6MNQ",
+    "isBrand": false,
+    "mallSeq": 293486
+  },
+  "hanjeupofficial": {
+    "channelUid": "2xCPKsbOVZWfFgVNiFhL4",
+    "isBrand": false,
+    "mallSeq": 11338984
+  },
+  "chosunnutrition": {
+    "channelUid": "2uodNcPHQ5DZMzAav6Klf",
+    "isBrand": false,
+    "mallSeq": 9857185
+  },
+  "choihome-": {
+    "channelUid": "2sWDxdCh2XFKYTQ1woPNG",
+    "isBrand": false,
+    "mallSeq": 857279
+  },
+  "hyobio": {
+    "channelUid": "2xNVUp6PZ0ZZdh3wES4zW",
+    "isBrand": false,
+    "mallSeq": 11432765
+  },
+  "gaonnuri": {
+    "channelUid": "2sWDzGreoKG9XxUfG7rQM",
+    "isBrand": true,
+    "mallSeq": 1813369
+  },
+  "thezac": {
+    "channelUid": "2sWDw4t9y9Q0ntcqoFkmx",
+    "isBrand": true,
+    "mallSeq": 447966
+  },
+  "godblessu": {
+    "channelUid": "2sWDzcwTOpc0X7P0nfo6T",
+    "isBrand": false,
+    "mallSeq": 2483360
+  },
+  "doctorby": {
+    "channelUid": "2sWDxUpJjEZKfLqXcdfvg",
+    "isBrand": true,
+    "mallSeq": 820689
+  },
+  "rayvonne": {
+    "channelUid": "2sWDx26eFAWuvvvBs1M0u",
+    "isBrand": true,
+    "mallSeq": 839333
+  },
+  "antinol": {
+    "channelUid": "2tcYcPmWc1RLWCpMplNul",
+    "isBrand": true,
+    "mallSeq": 8895875
+  },
+  "myogyeonseo": {
+    "channelUid": "2sWDyIs0qEjRlKbsMw8kD",
+    "isBrand": false,
+    "mallSeq": 1049886
+  },
+  "abcpetfood": {
+    "channelUid": "2sWDyGMKySdLj8AVbS86a",
+    "isBrand": false,
+    "mallSeq": 1037877
+  },
+  "noblemarket": {
+    "channelUid": "2sWDvlWOnnIugqmdxjIoW",
+    "isBrand": false,
+    "mallSeq": 325816
+  },
+  "dearlabs": {
+    "channelUid": "2sWE0Df7ePbymXU9KVh55",
+    "isBrand": true,
+    "mallSeq": 3610920
+  },
+  "petomaman": {
+    "channelUid": "2sWE1SljpHzz3DkoCcwIx",
+    "isBrand": true,
+    "mallSeq": 6360944
+  },
+  "juicemaster": {
+    "channelUid": "2sWDxs5jX9klTYMWocoRd",
+    "isBrand": false,
+    "mallSeq": 922745
+  },
+  "theguarantee2": {
+    "channelUid": "30D3PQ0HHDRa1lj1twiiv",
+    "isBrand": false,
+    "mallSeq": 12298448
+  },
+  "bookstand": {
+    "channelUid": "2sWDvq0DLf5Df3gBQ6UXu",
+    "isBrand": false,
+    "mallSeq": 610589
+  },
+  "vnine": {
+    "channelUid": "2sWE0uvNpNi8SzwgdYKOF",
+    "isBrand": false,
+    "mallSeq": 5107797
+  },
+  "nothing_better": {
+    "channelUid": "2sWDw8r0DdgLs5CiGLQff",
+    "isBrand": false,
+    "mallSeq": 473113
+  },
+  "kbjfood365": {
+    "channelUid": "2sWDxsXPsbkofKGzDVS49",
+    "isBrand": false,
+    "mallSeq": 925218
+  },
+  "frog2000": {
+    "channelUid": "2uIZRREZDl8sLYZj8hT5o",
+    "isBrand": false,
+    "mallSeq": 9465225
+  },
+  "nessluv": {
+    "channelUid": "2sWE08b8kdB0PxL9MehnY",
+    "isBrand": true,
+    "mallSeq": 6744544
+  },
+  "trillions1": {
+    "channelUid": "2sWE1wevzYkinUfQeOPHk",
+    "isBrand": false,
+    "mallSeq": 6146204
+  },
+  "wealthandhealth": {
+    "channelUid": "2sWE0IFZRjeVaST1aMrxz",
+    "isBrand": false,
+    "mallSeq": 3760978
+  },
+  "chung-gung": {
+    "channelUid": "2sWDxr9R5nMrfUO3MX3Rw",
+    "isBrand": false,
+    "mallSeq": 918601
+  },
+  "dongkook_healthcare": {
+    "channelUid": "2sWE21a2vvhlg6wIs88nY",
+    "isBrand": true,
+    "mallSeq": 7578497
+  },
+  "lghealthcarestore": {
+    "channelUid": "2sWDyonjTyE71BU4PsH7R",
+    "isBrand": true,
+    "mallSeq": 1210476
+  },
+  "nuon": {
+    "channelUid": "2sWDy257Qny0OAyJ88HhQ",
+    "isBrand": false,
+    "mallSeq": 969208
+  },
+  "sportsix": {
+    "channelUid": "30b4aClDb52XrOKJrCHCU",
+    "isBrand": true,
+    "mallSeq": 12333060
+  },
+  "zaramfood": {
+    "channelUid": "2sWDwPwzx27AkocACcMEe",
+    "isBrand": false,
+    "mallSeq": 554201
+  },
+  "jisungfood1029": {
+    "channelUid": "2sWDw6mKZ6uFOkcxioixS",
+    "isBrand": false,
+    "mallSeq": 461984
+  },
+  "goldricemall": {
+    "channelUid": "2sWE0dQEpd1USfXfmxh98",
+    "isBrand": false,
+    "mallSeq": 4478480
+  },
+  "archeum": {
+    "channelUid": "2sWDzyTkyZihm4JkKfPgU",
+    "isBrand": false,
+    "mallSeq": 3127488
+  },
+  "infobell": {
+    "channelUid": "2sWDvTNNXIzIWsggJoISt",
+    "isBrand": false,
+    "mallSeq": 200881
+  },
+  "blenderjuice": {
+    "channelUid": "2sWDxupFZrXC3juHkO7tX",
+    "isBrand": false,
+    "mallSeq": 1259397
+  },
+  "forest-home": {
+    "channelUid": "2sWDwzZDYwEdgkjD19EEH",
+    "isBrand": false,
+    "mallSeq": 723508
+  },
+  "dha1003": {
+    "channelUid": "2sWDw8VSdJfFjqAccGuKX",
+    "isBrand": false,
+    "mallSeq": 470858
+  },
+  "gigmi_gift": {
+    "channelUid": "2wp3HSr0Dqa5Gg43iqBni",
+    "isBrand": false,
+    "mallSeq": 11119984
+  },
+  "drjoos": {
+    "channelUid": "2sWE1T1F27a8FvEjKKgTx",
+    "isBrand": false,
+    "mallSeq": 5187724
+  },
+  "healthyme": {
+    "channelUid": "2sWDvuUukTZ0kOjccm9Si",
+    "isBrand": false,
+    "mallSeq": 384648
+  },
+  "juicehouse": {
+    "channelUid": "2sWE0zO7zbAmxEp7R0wzj",
+    "isBrand": false,
+    "mallSeq": 313016
+  },
+  "100healthy": {
+    "channelUid": "2sWDwuEl9bvw3maBvDOTK",
+    "isBrand": false,
+    "mallSeq": 697609
+  },
+  "andablanc": {
+    "channelUid": "2sWDyAfSSbUMFcQMXtBRY",
+    "isBrand": false,
+    "mallSeq": 1010161
+  },
+  "tyrannomart": {
+    "channelUid": "2sWDyB78rvVQqALw1byBi",
+    "isBrand": true,
+    "mallSeq": 1012075
+  },
+  "smilech": {
+    "channelUid": "2sWE0FWvavaNcwUVWEdWI",
+    "isBrand": false,
+    "mallSeq": 3668522
+  },
+  "drkims": {
+    "channelUid": "2sWDw2VxaGRWcUavjvdIW",
+    "isBrand": true,
+    "mallSeq": 449652
+  },
+  "greenfoodmaker": {
+    "channelUid": "2sWE10ZXDG8CXQl1dvjwn",
+    "isBrand": false,
+    "mallSeq": 2531769
+  },
+  "1eat": {
+    "channelUid": "2sWDvpDNbczYwLy01rRgS",
+    "isBrand": false,
+    "mallSeq": 354742
+  },
+  "from_now_on_mall": {
+    "channelUid": "2sWDvgRFIpEHd0f5Mq4bP",
+    "isBrand": false,
+    "mallSeq": 294725
+  },
+  "cc-farm": {
+    "channelUid": "2sWDwEK8Zr2KuT4WZMusM",
+    "isBrand": false,
+    "mallSeq": 510589
+  },
+  "backgardenofking": {
+    "channelUid": "2sWDxpfW0Jjdd9czlKoPj",
+    "isBrand": false,
+    "mallSeq": 1940888
+  },
+  "humancare_mall": {
+    "channelUid": "2sWDzftdbRL0Hyyhe7g54",
+    "isBrand": false,
+    "mallSeq": 2578160
+  },
+  "recipebox": {
+    "channelUid": "2sWDw89opt0MDvi6epSCe",
+    "isBrand": true,
+    "mallSeq": 469883
+  },
+  "mr-nature": {
+    "channelUid": "2sWDvXAnHiioyIpFJNifF",
+    "isBrand": true,
+    "mallSeq": 235686
+  },
+  "chaeumfnb": {
+    "channelUid": "2sWE103ebbl8jRPZWWe40",
+    "isBrand": false,
+    "mallSeq": 342688
+  },
+  "momschoice": {
+    "channelUid": "2sWDwoCjICZ6Gm2WUuArE",
+    "isBrand": true,
+    "mallSeq": 197760
+  },
+  "latib": {
+    "channelUid": "2sWDyDTAHC5X07moUOjCl",
+    "isBrand": true,
+    "mallSeq": 1024305
+  },
+  "suldangfree": {
+    "channelUid": "2sWDzev6ZU6Y6RbBiFqQE",
+    "isBrand": false,
+    "mallSeq": 2546458
+  },
+  "brown": {
+    "channelUid": "2sWDvYD267DNwnuM6Lk0Y",
+    "isBrand": true,
+    "mallSeq": 239276
+  },
+  "bebesup": {
+    "channelUid": "2sWDvQzzQp1vBMNK0UpCA",
+    "isBrand": true,
+    "mallSeq": 188464
+  },
+  "enblanc": {
+    "channelUid": "2sWDvXXthqC6pZtnlt5ps",
+    "isBrand": true,
+    "mallSeq": 235923
+  },
+  "penelope": {
+    "channelUid": "2sWDvVt9X25G3Cmt7f4Oo",
+    "isBrand": true,
+    "mallSeq": 222850
+  },
+  "gcleantec": {
+    "channelUid": "2sWDvmPZRaNa0qG7l7RQc",
+    "isBrand": true,
+    "mallSeq": 332391
+  },
+  "allfree": {
+    "channelUid": "2sWDwnPV5wAMVkf48UR1G",
+    "isBrand": true,
+    "mallSeq": 667538
+  },
+  "envin": {
+    "channelUid": "2sWDxmkCKa3HcGBqJG9lF",
+    "isBrand": true,
+    "mallSeq": 898320
+  },
+  "offon": {
+    "channelUid": "2sWDztDykdyJjm7WXQYSR",
+    "isBrand": true,
+    "mallSeq": 2969260
+  },
+  "vivelab": {
+    "channelUid": "2sWE0SOJPHM9ZNNkhcEfa",
+    "isBrand": true,
+    "mallSeq": 4083158
+  },
+  "ninemila": {
+    "channelUid": "2sWDzeYsNF12z1LASFS6I",
+    "isBrand": true,
+    "mallSeq": 2536160
+  },
+  "vancor": {
+    "channelUid": "2sWDwvCo6hvAeN7hNzROF",
+    "isBrand": true,
+    "mallSeq": 702347
+  },
+  "grabity": {
+    "channelUid": "2vk32iLlY4VIM6Ejwd29q",
+    "isBrand": true,
+    "mallSeq": 10448734
+  },
+  "byour_official": {
+    "channelUid": "2sWDzRiMntyN8rLYGDf55",
+    "isBrand": true,
+    "mallSeq": 2138691
+  },
+  "dabongss": {
+    "channelUid": "2sWDxim45WqxdLwgLE8qY",
+    "isBrand": true,
+    "mallSeq": 881010
+  },
+  "doctor_a": {
+    "channelUid": "2xE77RoOJc4Ktvd9FSaRv",
+    "isBrand": false,
+    "mallSeq": 11356394
+  },
+  "ap_dailybeauty": {
+    "channelUid": "2sWDvu0V36lpt1VUO34aL",
+    "isBrand": true,
+    "mallSeq": 386039
+  },
+  "kenvueofficial": {
+    "channelUid": "2sWDzRn94mKEkthzA8UmT",
+    "isBrand": true,
+    "mallSeq": 2139969
+  },
+  "vadev": {
+    "channelUid": "2sWDw9gBAhT53SvH9J02x",
+    "isBrand": true,
+    "mallSeq": 486552
+  },
+  "ascent": {
+    "channelUid": "2sWDwyOOmLw5GBSa1pzfD",
+    "isBrand": true,
+    "mallSeq": 717942
+  },
+  "cetaphilshop": {
+    "channelUid": "2sWDvck4Ow2gRGknK2B5r",
+    "isBrand": true,
+    "mallSeq": 270058
+  },
+  "larosee_korea": {
+    "channelUid": "2sWE1jQFXPr8bKxNtFdu4",
+    "isBrand": true,
+    "mallSeq": 6949694
+  },
+  "drforhair": {
+    "channelUid": "2sWDvZtdBcZYkRcM6lQhU",
+    "isBrand": true,
+    "mallSeq": 253873
+  },
+  "bringgreen": {
+    "channelUid": "2sWE0rkHM5iOfOyyIxO3K",
+    "isBrand": true,
+    "mallSeq": 4994314
+  },
+  "drjart": {
+    "channelUid": "2sWDvljAHQzMu9Vb7tLEK",
+    "isBrand": true,
+    "mallSeq": 329418
+  },
+  "celimax": {
+    "channelUid": "2sWDvxr84fx6cUOPZXkF9",
+    "isBrand": true,
+    "mallSeq": 522692
+  },
+  "medipeel": {
+    "channelUid": "2sWDvZBBDCMPG4XLG4q9y",
+    "isBrand": true,
+    "mallSeq": 246977
+  },
+  "someblossom": {
+    "channelUid": "2sWDwwwucEoPAAqxUUUIy",
+    "isBrand": true,
+    "mallSeq": 710270
+  },
+  "thephi": {
+    "channelUid": "2sWE0Vf4kdP5YypI3LqgM",
+    "isBrand": true,
+    "mallSeq": 4190320
+  },
+  "naturerepublicshop": {
+    "channelUid": "2sWDvjKhiYouOWa005rHW",
+    "isBrand": true,
+    "mallSeq": 312954
+  },
+  "roundlab": {
+    "channelUid": "2sWDvxGfep4VLMChOrsFC",
+    "isBrand": true,
+    "mallSeq": 401069
+  },
+  "torriden": {
+    "channelUid": "2sWDvvUuE3i7D4pmcV7yl",
+    "isBrand": true,
+    "mallSeq": 389898
+  },
+  "physiogel": {
+    "channelUid": "2sWDz2TuXYbNq8i3ELKR0",
+    "isBrand": true,
+    "mallSeq": 1387076
+  },
+  "vtcosmetics": {
+    "channelUid": "2sWDvsalXjgzZ59L2IetC",
+    "isBrand": true,
+    "mallSeq": 372698
+  },
+  "cosrx": {
+    "channelUid": "2sWDvNhfnYB0FgWU8B1JN",
+    "isBrand": true,
+    "mallSeq": 164655
+  },
+  "ncmj": {
+    "channelUid": "2sWDwvAZJUeHTsMhWGmFQ",
+    "isBrand": true,
+    "mallSeq": 702351
+  },
+  "doctorcheck": {
+    "channelUid": "2sWE0pO9tZXfySNTZHDtb",
+    "isBrand": true,
+    "mallSeq": 4911554
+  },
+  "dr-line": {
+    "channelUid": "2spQPLYkhxYcI5DmbVlWP",
+    "isBrand": false,
+    "mallSeq": 8225436
+  },
+  "selity": {
+    "channelUid": "2sWE24L1u3LbyUQL0Ca9Y",
+    "isBrand": false,
+    "mallSeq": 7657486
+  },
+  "vitafoodmall": {
+    "channelUid": "2zNEK8z0j9J8KQ51RVepg",
+    "isBrand": false,
+    "mallSeq": 12220674
+  },
+  "thelittles": {
+    "channelUid": "2sWDvxFbE9ujNJfVPa5Mo",
+    "isBrand": true,
+    "mallSeq": 403496
+  },
+  "justglow_ca": {
+    "channelUid": "2vitFPGmp8DvpXXD6FhDz",
+    "isBrand": false,
+    "mallSeq": 10434574
+  },
+  "medioncell": {
+    "channelUid": "2zBwu6AEZkfRozQq3sr3T",
+    "isBrand": false,
+    "mallSeq": 12204363
+  },
+  "thepiumstore": {
+    "channelUid": "2sWDwsDgv0VjYGhTXzV7m",
+    "isBrand": false,
+    "mallSeq": 688711
+  },
+  "rokitamerica": {
+    "channelUid": "2sWE0nCMfFCRxY9b7jEmT",
+    "isBrand": false,
+    "mallSeq": 4833814
+  },
+  "ncnature": {
+    "channelUid": "2sWE2BnHEzKqAc4o25555",
+    "isBrand": false,
+    "mallSeq": 7888436
+  },
+  "h-company-international": {
+    "channelUid": "30J3qTtH9G1xdB7fk3bT9",
+    "isBrand": false,
+    "mallSeq": 12308420
+  },
+  "piev": {
+    "channelUid": "30sEQwV3A7xkiz6Z3CXow",
+    "isBrand": true,
+    "mallSeq": 12358394
+  },
+  "sunbulrak": {
+    "channelUid": "2stslHkV9q5BpyAnwNWk7",
+    "isBrand": false,
+    "mallSeq": 8290254
+  },
+  "shingmulnara": {
+    "channelUid": "2wIqRhriSWGOMflaPjy5c",
+    "isBrand": true,
+    "mallSeq": 10815215
+  },
+  "balmainhair": {
+    "channelUid": "2sWDxXQk4ZYtssAKatAVy",
+    "isBrand": false,
+    "mallSeq": 1104399
+  },
+  "leemoonwon": {
+    "channelUid": "2sWDvSdAuzva4Nhil3mZ2",
+    "isBrand": false,
+    "mallSeq": 198211
+  },
+  "nakedsun": {
+    "channelUid": "31jIUKuzTix74XaI7gO80",
+    "isBrand": false,
+    "mallSeq": 12427495
+  },
+  "dashu": {
+    "channelUid": "2sWDvP0mE8vg7OMiDSd4b",
+    "isBrand": true,
+    "mallSeq": 170151
+  },
+  "_demell": {
+    "channelUid": "2sWDznzMyrNZfDLSdCrB5",
+    "isBrand": false,
+    "mallSeq": 2818420
+  },
+  "kakkuki": {
+    "channelUid": "2sWE0jVm4VOucxKotwAbU",
+    "isBrand": true,
+    "mallSeq": 4704834
+  },
+  "rabenhorst": {
+    "channelUid": "2sWDwErHNx2RgOxLI82a6",
+    "isBrand": true,
+    "mallSeq": 518684
+  },
+  "maxmade": {
+    "channelUid": "2sWDzapANhjcdJLJl6mhk",
+    "isBrand": false,
+    "mallSeq": 2419138
+  },
+  "kidsten": {
+    "channelUid": "2sWE0jNUU4B0SUdV6apPR",
+    "isBrand": true,
+    "mallSeq": 4700444
+  },
+  "sirloin": {
+    "channelUid": "2sWDwfcUMHQc0rtCUvNpc",
+    "isBrand": true,
+    "mallSeq": 630150
+  },
+  "theralab": {
+    "channelUid": "2sWDzMfG8hYBjmw8f77Fq",
+    "isBrand": false,
+    "mallSeq": 1992978
+  },
+  "movita": {
+    "channelUid": "2sWDvRJ64yordHknD6pnE",
+    "isBrand": true,
+    "mallSeq": 197812
+  },
+  "apharmhealth": {
+    "channelUid": "2sWDvj6BRTDSo36rvW2mD",
+    "isBrand": true,
+    "mallSeq": 315534
+  },
+  "echonutrition": {
+    "channelUid": "2sWDxttRWh3uBonFvfqKJ",
+    "isBrand": false,
+    "mallSeq": 930875
+  },
+  "spatone_kr": {
+    "channelUid": "2sWDyuXvTYwQ26eUsiLZF",
+    "isBrand": true,
+    "mallSeq": 1227604
+  },
+  "lacfido": {
+    "channelUid": "2zKzdhPVgyeQjRHSAGSlT",
+    "isBrand": false,
+    "mallSeq": 12218150
+  },
+  "pharmsville": {
+      "channelUid": "2sWDvO6ikkiNWfI7L4cKO",
+      "isBrand": false,
+      "mallSeq": 164407
+    },
+  "purerang": {
+      "channelUid": "2sWDvlOJB5fVpNlUiv4om",
+      "isBrand": false,
+      "mallSeq": 327083
+    },
+  "dodreamstore": {
+      "channelUid": "2sWDwd2QScXy9kAVeI4lL",
+      "isBrand": false,
+      "mallSeq": 616432
+    },
+  "awesomeofficial": {
+    "channelUid": "2sWDvXXtpxEUczwHgWOl3",
+    "isBrand": false,
+    "mallSeq": 237187
+  },
+  "ildong": {
+    "channelUid": "2sWDxcul382WQdUPOp4Hf",
+    "isBrand": true,
+    "mallSeq": 856114
+  },
+  "ournutrimall": {
+    "channelUid": "2usercMYaD0oscSmQEcDV",
+    "isBrand": false,
+    "mallSeq": 9907895
+  },
+  "purezen_": {
+    "channelUid": "2zfT2Ptk5y2dkdMhroZt4",
+    "isBrand": false,
+    "mallSeq": 12251281
+  },
+  "regenelkorea": {
+    "channelUid": "31OJTMRWSvPByMKX3wmMs",
+    "isBrand": false,
+    "mallSeq": 12398876
+  },
+  "gmpharm": {
+    "channelUid": "2sWDvxWx7d3tCEpuDM90E",
+    "isBrand": true,
+    "mallSeq": 401368
+  }
+}
