@@ -206,6 +206,7 @@ sendScheduleEnabled.addEventListener('change', saveSendScheduleConfig);
  * @returns {Promise<void>}
  */
 async function saveSendScheduleConfig() {
+  _sendScheduleConfig.enabled = sendScheduleEnabled.checked;
   _sendScheduleConfig.baseTime = sendBaseTimeInput.value || '00:00';
   await chrome.runtime.sendMessage({ action: 'saveSendScheduleConfig', config: _sendScheduleConfig });
   await refreshAlarmDisplay();
@@ -286,6 +287,7 @@ refreshEnabled.addEventListener('change', saveRefreshScheduleConfig);
  * @returns {Promise<void>}
  */
 async function saveRefreshScheduleConfig() {
+  _refreshScheduleConfig.enabled = refreshEnabled.checked;
   _refreshScheduleConfig.baseTime = refreshBaseTimeInput.value || '00:00';
   await chrome.runtime.sendMessage({ action: 'saveRefreshScheduleConfig', config: _refreshScheduleConfig });
   await refreshAlarmDisplay();

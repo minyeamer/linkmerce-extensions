@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "네이버 쿠키 업데이트",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "네이버 쿠키를 주기적으로 추출하여 Slack 채널에 전송합니다",
 
   "permissions": [
