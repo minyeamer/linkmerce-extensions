@@ -1593,5 +1593,45 @@
     "channelUid": "2sWDvxWx7d3tCEpuDM90E",
     "isBrand": true,
     "mallSeq": 401368
+  },
+  "drtrue": {
+    "channelUid": "2sWE18tgsryuaQFu4c5cR",
+    "isBrand": true,
+    "mallSeq": 5629035
+  },
+  "barnfarms": {
+    "channelUid": "2tPViOgRm4jewrfipMsVx",
+    "isBrand": true,
+    "mallSeq": 8710224
+  },
+  "salimbogam": {
+    "channelUid": "2wMtysdXU39y11nTsPaFY",
+    "isBrand": true,
+    "mallSeq": 10856106
+  },
+  "healthstandard": {
+    "channelUid": "32QzG6n5JxZAhx6dzVUtf",
+    "isBrand": false,
+    "mallSeq": 12487869
+  },
+  "sopo_": {
+    "channelUid": "2v5gAQLS2gV539CDnswzu",
+    "isBrand": false,
+    "mallSeq": 10075915
+  },
+  "aedel": {
+    "channelUid": "2xSqptHLyPnE4WiQQqbr9",
+    "isBrand": true,
+    "mallSeq": 11481104
+  },
+  "happydream-store": {
+    "channelUid": "2uusaGa6rysCrryRjnl8f",
+    "isBrand": false,
+    "mallSeq": 9936134
+  },
+  "sylvekorea": {
+    "channelUid": "2sWE0TzFwZ4v5nM9VzCVP",
+    "isBrand": false,
+    "mallSeq": 4139909
   }
 }
