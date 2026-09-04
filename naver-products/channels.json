@@ -1636,7 +1636,12 @@
   },
   "aguard": {
     "channelUid": "2sWDvPX2ihPNKHR2ympEc",
-    "isBrand": false,
+    "isBrand": true,
     "mallSeq": 173244
+  },
+  "narimong": {
+    "channelUid": "2ugahgT1cETqtcifixsIR",
+    "isBrand": true,
+    "mallSeq": 9751134
   }
 }
