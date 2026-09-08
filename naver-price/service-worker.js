@@ -275,6 +275,22 @@ function responseText(data) {
     .filter(item => item.type === 'output_text').map(item => item.text).join('');
 }
 
+function priceImagePrompt({ title, discountedPrice } = {}) {
+  const targetTitle = title || '알 수 없음';
+  const targetDiscountedPrice = discountedPrice == null ? '알 수 없음' : `${discountedPrice.toLocaleString()}원`;
+  return [
+    '상품 상세 이미지의 가격표를 읽으세요. 이미지에 여러 구성·옵션 가격 블록이 있으면, 절대로 가장 위 블록을 자동 선택하지 마세요.',
+    `검증 대상 상품명: ${targetTitle}`,
+    `검증 대상의 실제 일반 할인가: ${targetDiscountedPrice}`,
+    '여러 블록 중 검증 대상에 해당하는 블록 하나를 선택하세요. 실제 일반 할인가와 가장 가깝거나 일치하는 블록을 가장 우선하고, 상품명·구성·수량·묶음 표현을 보조 단서로 사용하세요.',
+    '구성 표현은 5개/5박스/4+1박스처럼 서로 다를 수 있으므로 단어가 완전히 일치하지 않아도 의미가 맞는지 판단하세요.',
+    '정상가는 할인율 변경으로 달라질 수 있으므로 블록 선택의 주된 근거로 쓰지 마세요. 실제 최대 할인가도 블록 선택에 사용하지 마세요.',
+    '선택한 블록 안에서만 정상가, 일반 할인가, 쿠폰 할인액, 쿠폰 적용 후 최종 금액(최대 할인가)을 읽으세요.',
+    '최종 금액은 쿠폰적용 시·최대할인가·최종 혜택가 등 어떤 문구로 표시될 수 있습니다. 보이는 숫자만 반환하고 계산하거나 추측하지 마세요.',
+    '정상가와 가격이 함께 있어야 가격 이미지입니다.'
+  ].join(' ');
+}
+
 async function apiErrorMessage(response, serviceName) {
   const body = await response.text();
   let detail = '';
@@ -288,7 +304,7 @@ async function apiErrorMessage(response, serviceName) {
   return `${serviceName} 오류 ${response.status}${detail ? `: ${detail}` : ''}`;
 }
 
-async function openAiImagePrices(url, visionAiApiConfig) {
+async function openAiImagePrices(url, visionAiApiConfig, priceTarget) {
   const schema = {
     type: 'object', additionalProperties: false,
     properties: {
@@ -299,7 +315,7 @@ async function openAiImagePrices(url, visionAiApiConfig) {
     },
     required: ['is_price_image', 'selected_block_ordinal', 'selected_block_label', 'sales_price', 'discounted_price', 'discount_amount', 'total_pay_amount', 'evidence_text']
   };
-  const prompt = '상품 상세 이미지의 가격표를 읽으세요. 여러 옵션·용량 가격표가 있으면 화면에서 가장 위에 있는 가격 블록 하나만 선택합니다. 선택한 블록 안에서 정상가, 일반 할인가, 쿠폰 할인액, 쿠폰 적용 후 최종 금액(최대 할인가)을 읽습니다. 최종 금액은 쿠폰적용 시·최대할인가·최종 혜택가 등 어떤 문구로 표시될 수 있습니다. 보이는 숫자만 반환하고 계산하거나 추측하지 마세요. 정상가와 가격이 함께 있어야 가격 이미지입니다.';
+  const prompt = priceImagePrompt(priceTarget);
   const outputInstructions = '\nJSON fields: sales_price (normal price), discounted_price (ordinary discounted price), discount_amount (coupon discount), total_pay_amount (coupon-applied final price).';
   const response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
@@ -332,14 +348,6 @@ const GOOGLE_PRICE_SCHEMA = {
   ]
 };
 
-const GOOGLE_PRICE_PROMPT = [
-  '상품 상세 이미지의 가격표를 읽으세요. 여러 옵션·용량 가격표가 있으면 화면에서 가장 위에 있는 가격 블록 하나만 선택합니다.',
-  '선택한 블록 안에서 정상가, 일반 할인가, 쿠폰 할인액, 쿠폰 적용 후 최종 금액(최대 할인가)을 읽습니다.',
-  '최종 금액은 쿠폰적용 시·최대할인가·최종 혜택가 등 어떤 문구로 표시될 수 있습니다.',
-  '보이는 숫자만 반환하고 계산하거나 추측하지 마세요. 정상가와 가격이 함께 있어야 가격 이미지입니다.',
-  'JSON 필드는 sales_price(정상가), discounted_price(일반 할인가), discount_amount(쿠폰 할인액), total_pay_amount(쿠폰 적용 후 최종 금액)입니다.'
-].join(' ');
-
 function base64FromBytes(bytes) {
   let binary = '';
   const chunkSize = 0x8000;
@@ -349,7 +357,7 @@ function base64FromBytes(bytes) {
   return btoa(binary);
 }
 
-async function googleImagePrices(url, visionAiApiConfig) {
+async function googleImagePrices(url, visionAiApiConfig, priceTarget) {
   const imageResponse = await fetch(url);
   if (!imageResponse.ok) throw new Error(`Google image download error: ${imageResponse.status}`);
   const mimeType = imageResponse.headers.get('content-type')?.split(';')[0] || 'image/jpeg';
@@ -361,7 +369,7 @@ async function googleImagePrices(url, visionAiApiConfig) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ role: 'user', parts: [
-        { text: GOOGLE_PRICE_PROMPT },
+        { text: `${priceImagePrompt(priceTarget)} JSON 필드는 sales_price(정상가), discounted_price(일반 할인가), discount_amount(쿠폰 할인액), total_pay_amount(쿠폰 적용 후 최종 금액)입니다.` },
         { inlineData: { mimeType, data: imageData } }
       ] }],
       generationConfig: {
@@ -378,10 +386,10 @@ async function googleImagePrices(url, visionAiApiConfig) {
   return JSON.parse(text);
 }
 
-async function imagePrices(url, visionAiApiConfig) {
+async function imagePrices(url, visionAiApiConfig, priceTarget) {
   return visionAiApiConfig.provider === 'google'
-    ? googleImagePrices(url, visionAiApiConfig)
-    : openAiImagePrices(url, visionAiApiConfig);
+    ? googleImagePrices(url, visionAiApiConfig, priceTarget)
+    : openAiImagePrices(url, visionAiApiConfig, priceTarget);
 }
 
 function slackAlertText(row) {
@@ -486,7 +494,10 @@ async function validateOne(target, cfg, position, total) {
     await updateStatus({ stage: `상세 이미지 ${index + 1}/${images.length} ${cfg.visionAiApiConfig.provider === 'google' ? 'Google AI' : 'OpenAI'} 가격 분석`, currentImage: index + 1, imageTotal: images.length });
     let extracted;
     try {
-      extracted = await imagePrices(images[index], cfg.visionAiApiConfig);
+      extracted = await imagePrices(images[index], cfg.visionAiApiConfig, {
+        title: row.title,
+        discountedPrice: row.discountedPrice
+      });
     } catch (error) {
       // One malformed or unsupported image must not prevent later price images
       // or the product's CSV row from being collected.
@@ -581,7 +592,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     }
     if (request.action === 'exportSettings') {
       const saved = await settings();
-      return { success: true, settings: { _version: '0.3.2', ...saved, urls: urlsToList(saved.urls) } };
+      return { success: true, settings: { _version: '0.3.3', ...saved, urls: urlsToList(saved.urls) } };
     }
     if (request.action === 'importSettings') {
       const imported = request.settings || {};
