@@ -1,26 +1,28 @@
 const $ = id => document.getElementById(id);
 const ids = [
-  'urls', 'naverClientId', 'naverClientSecret', 'aiProvider', 'generativeAiKey', 'model',
+  'urls', 'smartstoreClientId', 'smartstoreClientSecret', 'visionAiProvider', 'visionAiApiKey', 'visionAiModel',
   'slackEnabled', 'slackToken', 'slackChannel', 'scheduleEnabled', 'scheduleTime'
 ];
 
 const defaultModel = provider => provider === 'google' ? 'gemini-3.1-flash-lite' : 'gpt-4o-mini';
-let lastAiProvider = 'google';
+let lastVisionAiProvider = 'google';
 
 function syncModelPlaceholder() {
-  $('model').placeholder = defaultModel($('aiProvider').value);
+  $('visionAiModel').placeholder = defaultModel($('visionAiProvider').value);
 }
 
 function values() {
-  const aiProvider = $('aiProvider').value === 'google' ? 'google' : 'openai';
+  const provider = $('visionAiProvider').value === 'google' ? 'google' : 'openai';
   return {
     urls: $('urls').value,
-    apiConfig: {
-      naverClientId: $('naverClientId').value.trim(),
-      naverClientSecret: $('naverClientSecret').value.trim(),
-      aiProvider,
-      generativeAiApiKey: $('generativeAiKey').value.trim(),
-      model: $('model').value.trim() || defaultModel(aiProvider)
+    smartstoreApiConfig: {
+      clientId: $('smartstoreClientId').value.trim(),
+      clientSecret: $('smartstoreClientSecret').value.trim()
+    },
+    visionAiApiConfig: {
+      provider,
+      apiKey: $('visionAiApiKey').value.trim(),
+      model: $('visionAiModel').value.trim() || defaultModel(provider)
     },
     slackConfig: {
       enabled: $('slackEnabled').checked,
@@ -32,14 +34,15 @@ function values() {
 }
 
 function fill(settings) {
-  const api = settings.apiConfig || {};
+  const smartstoreApiConfig = settings.smartstoreApiConfig || {};
+  const visionAiApiConfig = settings.visionAiApiConfig || {};
   $('urls').value = Array.isArray(settings.urls) ? settings.urls.join('\n') : (settings.urls || '');
-  $('naverClientId').value = api.naverClientId || '';
-  $('naverClientSecret').value = api.naverClientSecret || '';
-  $('aiProvider').value = api.aiProvider === 'openai' ? 'openai' : 'google';
-  $('generativeAiKey').value = api.generativeAiApiKey || '';
-  $('model').value = api.model || defaultModel($('aiProvider').value);
-  lastAiProvider = $('aiProvider').value;
+  $('smartstoreClientId').value = smartstoreApiConfig.clientId || '';
+  $('smartstoreClientSecret').value = smartstoreApiConfig.clientSecret || '';
+  $('visionAiProvider').value = visionAiApiConfig.provider === 'openai' ? 'openai' : 'google';
+  $('visionAiApiKey').value = visionAiApiConfig.apiKey || '';
+  $('visionAiModel').value = visionAiApiConfig.model || defaultModel($('visionAiProvider').value);
+  lastVisionAiProvider = $('visionAiProvider').value;
   syncModelPlaceholder();
   $('slackEnabled').checked = !!settings.slackConfig?.enabled;
   $('slackToken').value = settings.slackConfig?.token || '';
@@ -58,12 +61,19 @@ function showStatus(status) {
   $('status').textContent = status.running ? `진행 ${status.done}/${status.total}` : (status.error ? '오류' : (status.finishedAt ? '완료' : '대기'));
   const details = [
     status.stage,
+    status.currentMallUrl && `판매처 목록 ${status.mallProductPage || 1}페이지`,
+    status.mallProductCount != null ? `목록에서 ${status.mallProductCount}개 상품 수집` : '',
     status.currentUrl && `상품 ${status.current}/${status.total}`,
     status.imageTotal ? `이미지 ${status.currentImage}/${status.imageTotal}` : '',
     status.totalPayAmountSource && `확인한 최대 할인가: ${status.totalPayAmount?.toLocaleString()}원`,
     status.filename && `CSV: 다운로드/${status.filename}`,
     status.error && `오류: ${status.error}`,
-    status.errors?.length ? `상품 오류 ${status.errors.length}건` : ''
+    status.errors?.length ? `상품 오류 ${status.errors.length}건` : '',
+    ...(status.errors || []).flatMap(item => [
+      item.url && `상품 주소: ${item.url}`,
+      item.imageUrl && `이미지 주소: ${item.imageUrl}`,
+      item.error && `사유: ${item.error}`
+    ])
   ].filter(Boolean);
   if (details.length) msg(details.join('\n'), !!status.error || !!status.errors?.length);
 }
@@ -79,11 +89,11 @@ async function save() {
   if (!result.success) throw new Error(result.error);
 }
 
-ids.forEach(id => $(id).addEventListener(id.endsWith('Enabled') || id === 'aiProvider' ? 'change' : 'input', () => {
-  if (id === 'aiProvider') {
-    const provider = $('aiProvider').value;
-    if (!$('model').value || $('model').value === defaultModel(lastAiProvider)) $('model').value = defaultModel(provider);
-    lastAiProvider = provider;
+ids.forEach(id => $(id).addEventListener(id.endsWith('Enabled') || id === 'visionAiProvider' ? 'change' : 'input', () => {
+  if (id === 'visionAiProvider') {
+    const provider = $('visionAiProvider').value;
+    if (!$('visionAiModel').value || $('visionAiModel').value === defaultModel(lastVisionAiProvider)) $('visionAiModel').value = defaultModel(provider);
+    lastVisionAiProvider = provider;
     syncModelPlaceholder();
   }
   save().catch(error => msg(error.message, true));

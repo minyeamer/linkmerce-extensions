@@ -3,10 +3,8 @@ importScripts('vendor-bcrypt.js');
 const CSV_HEADER = ['상품명', '상품 주소', '정상가', '할인가', '최대 할인가', '이미지 주소', '정상가(이미지)', '할인가(이미지)', '최대 할인가(이미지)'];
 const DEFAULTS = {
   urls: '', scheduleConfig: { enabled: false, time: '09:00' },
-  apiConfig: {
-    naverClientId: '', naverClientSecret: '', aiProvider: 'google',
-    generativeAiApiKey: '', model: 'gemini-3.1-flash-lite'
-  },
+  smartstoreApiConfig: { clientId: '', clientSecret: '' },
+  visionAiApiConfig: { provider: 'google', apiKey: '', model: 'gemini-3.1-flash-lite' },
   slackConfig: { enabled: false, token: '', channel: '' }
 };
 
@@ -16,16 +14,32 @@ const cleanPrice = value => {
   return digits ? Number(digits) : null;
 };
 const csv = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
-const productNo = url => new URL(url).pathname.match(/\/products\/(\d+)/)?.[1] || null;
+function productNo(url) {
+  try {
+    return new URL(url).pathname.match(/\/products\/(\d+)/)?.[1] || null;
+  } catch (_) {
+    return null;
+  }
+}
 
-function normalizeApiConfig(apiConfig = {}) {
-  const aiProvider = apiConfig.aiProvider === 'openai' ? 'openai' : 'google';
-  const defaultModel = aiProvider === 'google' ? 'gemini-3.1-flash-lite' : 'gpt-4o-mini';
+function normalizeSmartstoreApiConfig(smartstoreApiConfig = {}) {
   return {
-    ...DEFAULTS.apiConfig, ...apiConfig,
-    aiProvider,
-    generativeAiApiKey: apiConfig.generativeAiApiKey || '',
-    model: apiConfig.aiProvider ? (apiConfig.model || defaultModel) : defaultModel
+    ...DEFAULTS.smartstoreApiConfig,
+    ...smartstoreApiConfig,
+    clientId: smartstoreApiConfig.clientId || '',
+    clientSecret: smartstoreApiConfig.clientSecret || ''
+  };
+}
+
+function normalizeVisionAiApiConfig(visionAiApiConfig = {}) {
+  const provider = visionAiApiConfig.provider === 'openai' ? 'openai' : 'google';
+  const defaultModel = provider === 'google' ? 'gemini-3.1-flash-lite' : 'gpt-4o-mini';
+  return {
+    ...DEFAULTS.visionAiApiConfig,
+    ...visionAiApiConfig,
+    provider,
+    apiKey: visionAiApiConfig.apiKey || '',
+    model: visionAiApiConfig.provider ? (visionAiApiConfig.model || defaultModel) : defaultModel
   };
 }
 
@@ -33,7 +47,8 @@ async function settings() {
   const saved = await chrome.storage.local.get(DEFAULTS);
   return {
     ...DEFAULTS, ...saved,
-    apiConfig: normalizeApiConfig(saved.apiConfig),
+    smartstoreApiConfig: normalizeSmartstoreApiConfig(saved.smartstoreApiConfig),
+    visionAiApiConfig: normalizeVisionAiApiConfig(saved.visionAiApiConfig),
     slackConfig: { ...DEFAULTS.slackConfig, ...(saved.slackConfig || {}) },
     scheduleConfig: { ...DEFAULTS.scheduleConfig, ...(saved.scheduleConfig || {}) }
   };
@@ -48,25 +63,77 @@ function urlsToList(value) {
     .map(value => String(value).trim()).filter(Boolean))];
 }
 
+function mallUrlFromInput(value) {
+  try {
+    const parsed = new URL(value);
+    if (!['brand.naver.com', 'smartstore.naver.com'].includes(parsed.hostname) || productNo(parsed.href)) return null;
+    const storeId = parsed.pathname.split('/').filter(Boolean)[0];
+    return storeId ? `${parsed.origin}/${storeId}` : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function mallProductsPageUrl(mallUrl, page, size = 80) {
+  const parsed = new URL(mallUrl);
+  const mallId = parsed.pathname.split('/').filter(Boolean)[0];
+  return `${parsed.origin}/${mallId}/category/ALL?st=RECENT&dt=IMAGE&page=${page}&size=${size}`;
+}
+
+function uniqueTargets(targets) {
+  const seen = new Set();
+  return targets.filter(target => {
+    const code = productNo(target.url);
+    if (!code || seen.has(code)) return false;
+    seen.add(code);
+    return true;
+  });
+}
+
+async function navigateAndWait(tabId, url, timeoutMessage) {
+  await new Promise((resolve, reject) => {
+    const listener = (id, info) => {
+      if (id !== tabId || info.status !== 'complete') return;
+      clearTimeout(timer);
+      chrome.tabs.onUpdated.removeListener(listener);
+      resolve();
+    };
+    const timer = setTimeout(() => {
+      chrome.tabs.onUpdated.removeListener(listener);
+      reject(new Error(timeoutMessage));
+    }, 30000);
+    chrome.tabs.onUpdated.addListener(listener);
+    chrome.tabs.update(tabId, { url }).catch(error => {
+      clearTimeout(timer);
+      chrome.tabs.onUpdated.removeListener(listener);
+      reject(error);
+    });
+  });
+}
+
 function imageUrls(detailHtml) {
   const urls = [], seen = new Set();
+  const supportedImageExtension = /\.(?:jpe?g|png|webp|heic|heif)(?:[?#]|$)/i;
   const pattern = /<img\b[^>]*\b(?:src|data-src|data-original|data-lazy-src)\s*=\s*["']([^"']+)["'][^>]*>/gi;
   for (let match; (match = pattern.exec(detailHtml));) {
     const url = match[1].replace(/&amp;/g, '&');
-    if (/^https?:\/\//.test(url) && !seen.has(url)) { seen.add(url); urls.push(url); }
+    if (/^https?:\/\//.test(url) && supportedImageExtension.test(url) && !seen.has(url)) {
+      seen.add(url);
+      urls.push(url);
+    }
   }
   return urls;
 }
 
-async function commerceAccessToken(api) {
-  if (!api.naverClientId || !api.naverClientSecret) throw new Error('Commerce API 인증 정보를 설정해 주세요.');
+async function commerceAccessToken(smartstoreApiConfig) {
+  if (!smartstoreApiConfig.clientId || !smartstoreApiConfig.clientSecret) throw new Error('Commerce API 인증 정보를 설정해 주세요.');
   const cache = (await chrome.storage.local.get('naverOAuthCache')).naverOAuthCache;
   if (cache?.token && cache.expiresAt > Date.now() + 60000) return cache.token;
   if (!self.dcodeIO?.bcrypt) throw new Error('Commerce API 인증 모듈을 불러오지 못했습니다.');
   const timestamp = Date.now() - 3000;
-  const hash = self.dcodeIO.bcrypt.hashSync(`${api.naverClientId}_${timestamp}`, api.naverClientSecret);
+  const hash = self.dcodeIO.bcrypt.hashSync(`${smartstoreApiConfig.clientId}_${timestamp}`, smartstoreApiConfig.clientSecret);
   const form = new URLSearchParams({
-    client_id: api.naverClientId, timestamp: String(timestamp), client_secret_sign: btoa(hash),
+    client_id: smartstoreApiConfig.clientId, timestamp: String(timestamp), client_secret_sign: btoa(hash),
     grant_type: 'client_credentials', type: 'SELF'
   });
   const response = await fetch('https://api.commerce.naver.com/external/v1/oauth2/token', {
@@ -115,20 +182,7 @@ function pricesFromCommerceApi(originProduct) {
 async function readRenderedPage(url) {
   const tab = await chrome.tabs.create({ url: 'about:blank', active: false });
   try {
-    await chrome.tabs.update(tab.id, { url });
-    await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        chrome.tabs.onUpdated.removeListener(listener);
-        reject(new Error('상품 페이지 로딩 시간이 초과되었습니다.'));
-      }, 30000);
-      const listener = (id, info) => {
-        if (id !== tab.id || info.status !== 'complete') return;
-        clearTimeout(timer);
-        chrome.tabs.onUpdated.removeListener(listener);
-        resolve();
-      };
-      chrome.tabs.onUpdated.addListener(listener);
-    });
+    await navigateAndWait(tab.id, url, '상품 페이지 로딩 시간이 초과되었습니다.');
     // Login and coupon state can finish updating after document completion.
     // This is only a wait for the rendered DOM, not a network inspection.
     await sleep(3000);
@@ -138,12 +192,103 @@ async function readRenderedPage(url) {
   }
 }
 
+async function goToNextMallProductPage(tabId) {
+  const currentUrl = (await chrome.tabs.get(tabId)).url;
+  const result = await chrome.tabs.sendMessage(tabId, { type: 'GO_TO_NEXT_MALL_PRODUCT_PAGE' });
+  if (!result?.clicked) return false;
+
+  for (let attempt = 0; attempt < 20; attempt++) {
+    await sleep(500);
+    if ((await chrome.tabs.get(tabId)).url !== currentUrl) {
+      // The list changes route before its product cards finish rendering.
+      await sleep(3000);
+      return true;
+    }
+  }
+  throw new Error('다음 상품 목록 페이지로 이동하지 못했습니다.');
+}
+
+async function readMallProducts(mallUrl, status) {
+  const size = 80;
+  const mallProducts = [];
+  const seenProductCodes = new Set();
+  const tab = await chrome.tabs.create({ url: 'about:blank', active: false });
+  try {
+    for (let page = 1; page <= 100; page++) {
+      await updateStatus({
+        ...status,
+        stage: `판매처 상품 목록 ${page}페이지 수집`,
+        currentMallUrl: mallUrl,
+        mallProductPage: page
+      });
+      if (page === 1) {
+        await navigateAndWait(tab.id, mallProductsPageUrl(mallUrl, 1, size), '판매처 상품 목록 로딩 시간이 초과되었습니다.');
+        await sleep(3000 + Math.floor(Math.random() * 4000));
+      } else {
+        // Naver resolves /category/ALL to its internal category path while changing
+        // pages. Use the rendered paginator instead of rebuilding a stale ALL URL.
+        await sleep(3000 + Math.floor(Math.random() * 4000));
+        if (!await goToNextMallProductPage(tab.id)) break;
+      }
+      const mallProductPage = await chrome.tabs.sendMessage(tab.id, { type: 'READ_MALL_PRODUCTS' });
+      const pageMallProducts = (mallProductPage?.mallProducts || []).filter(mallProduct => {
+        if (seenProductCodes.has(mallProduct.productCode)) return false;
+        seenProductCodes.add(mallProduct.productCode);
+        return true;
+      });
+      mallProducts.push(...pageMallProducts);
+      await updateStatus({ stage: `판매처 상품 목록 ${page}페이지: ${pageMallProducts.length}개 수집`, mallProductCount: mallProducts.length });
+      if (!mallProductPage?.hasNextPage) break;
+    }
+    return mallProducts;
+  } finally {
+    await chrome.tabs.remove(tab.id).catch(() => {});
+  }
+}
+
+async function collectValidationTargets(inputUrls, status) {
+  const mallUrls = [];
+  const productUrls = [];
+  for (const value of inputUrls) {
+    if (productNo(value)) productUrls.push({ url: value, fromMallProduct: false });
+    else {
+      const mallUrl = mallUrlFromInput(value);
+      if (!mallUrl) throw new Error('상품 상세 URL 또는 판매처 URL만 입력할 수 있습니다.');
+      mallUrls.push(mallUrl);
+    }
+  }
+  const validationTargets = [];
+  for (const mallUrl of [...new Set(mallUrls)]) {
+    try {
+      validationTargets.push(...await readMallProducts(mallUrl, status));
+    } catch (error) {
+      status.errors.push({ url: mallUrl, error: error.message });
+      await updateStatus({ stage: '판매처 상품 목록 수집 오류', errors: status.errors, error: error.message });
+    }
+  }
+  // Store products deliberately run first; directly entered product URLs follow.
+  return uniqueTargets([...validationTargets, ...productUrls]);
+}
+
 function responseText(data) {
   return data.output_text || (data.output || []).flatMap(item => item.content || [])
     .filter(item => item.type === 'output_text').map(item => item.text).join('');
 }
 
-async function openAiImagePrices(url, api) {
+async function apiErrorMessage(response, serviceName) {
+  const body = await response.text();
+  let detail = '';
+  try {
+    const parsed = JSON.parse(body);
+    detail = parsed?.error?.message || parsed?.message || '';
+  } catch (_) {
+    detail = body;
+  }
+  detail = String(detail).replace(/\s+/g, ' ').trim().slice(0, 500);
+  return `${serviceName} 오류 ${response.status}${detail ? `: ${detail}` : ''}`;
+}
+
+async function openAiImagePrices(url, visionAiApiConfig) {
   const schema = {
     type: 'object', additionalProperties: false,
     properties: {
@@ -158,14 +303,14 @@ async function openAiImagePrices(url, api) {
   const outputInstructions = '\nJSON fields: sales_price (normal price), discounted_price (ordinary discounted price), discount_amount (coupon discount), total_pay_amount (coupon-applied final price).';
   const response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${api.generativeAiApiKey}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${visionAiApiConfig.apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: api.model || 'gpt-4o-mini',
+      model: visionAiApiConfig.model || 'gpt-4o-mini',
       input: [{ role: 'user', content: [{ type: 'input_text', text: prompt + outputInstructions }, { type: 'input_image', image_url: url, detail: 'high' }] }],
       text: { format: { type: 'json_schema', name: 'price_check', strict: true, schema } }
     })
   });
-  if (!response.ok) throw new Error(`OpenAI 오류: ${response.status}`);
+  if (!response.ok) throw new Error(await apiErrorMessage(response, 'OpenAI'));
   return JSON.parse(responseText(await response.json()));
 }
 
@@ -204,13 +349,13 @@ function base64FromBytes(bytes) {
   return btoa(binary);
 }
 
-async function googleImagePrices(url, api) {
+async function googleImagePrices(url, visionAiApiConfig) {
   const imageResponse = await fetch(url);
   if (!imageResponse.ok) throw new Error(`Google image download error: ${imageResponse.status}`);
   const mimeType = imageResponse.headers.get('content-type')?.split(';')[0] || 'image/jpeg';
   const imageData = base64FromBytes(new Uint8Array(await imageResponse.arrayBuffer()));
-  const model = api.model || 'gemini-3.1-flash-lite';
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(api.generativeAiApiKey)}`;
+  const model = visionAiApiConfig.model || 'gemini-3.1-flash-lite';
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(visionAiApiConfig.apiKey)}`;
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -226,15 +371,17 @@ async function googleImagePrices(url, api) {
       }
     })
   });
-  if (!response.ok) throw new Error(`Google AI error: ${response.status}`);
+  if (!response.ok) throw new Error(await apiErrorMessage(response, 'Google AI'));
   const data = await response.json();
   const text = (data.candidates?.[0]?.content?.parts || []).map(part => part.text || '').join('');
   if (!text) throw new Error('Google AI returned no text response.');
   return JSON.parse(text);
 }
 
-async function imagePrices(url, api) {
-  return api.aiProvider === 'google' ? googleImagePrices(url, api) : openAiImagePrices(url, api);
+async function imagePrices(url, visionAiApiConfig) {
+  return visionAiApiConfig.provider === 'google'
+    ? googleImagePrices(url, visionAiApiConfig)
+    : openAiImagePrices(url, visionAiApiConfig);
 }
 
 function slackAlertText(row) {
@@ -275,16 +422,37 @@ async function writeCsv(run) {
   await chrome.downloads.download({ url: dataUrl, filename: run.filename, conflictAction: 'uniquify', saveAs: false });
 }
 
-async function validateOne(url, cfg, position, total) {
+async function validateOne(target, cfg, position, total) {
+  const {
+    url,
+    title: mallProductTitle = '',
+    salesPrice: mallProductSalesPrice = null,
+    discountedPrice: mallProductDiscountedPrice = null,
+    totalPayAmount: mallProductTotalPayAmount = null,
+    fromMallProduct = false
+  } = typeof target === 'string'
+    ? { url: target }
+    : target;
   const no = productNo(url);
   if (!no) throw new Error('유효한 네이버 상품 URL이 아닙니다.');
-  await updateStatus({ stage: '로그인된 상품 페이지에서 가격 확인', currentUrl: url, current: position, total, currentImage: 0, imageTotal: 0 });
-  const page = await readRenderedPage(url);
+  await updateStatus({
+    stage: fromMallProduct ? '판매처 상품 목록 가격 사용' : '로그인된 상품 페이지에서 가격 확인',
+    currentUrl: url,
+    current: position,
+    total,
+    currentImage: 0,
+    imageTotal: 0
+  });
+  // A mall product already provides title and all visible price values needed
+  // for validation. Only individually entered product URLs need a detail-page DOM read.
+  const page = fromMallProduct
+    ? { title: mallProductTitle, salesPrice: mallProductSalesPrice, discountedPrice: mallProductDiscountedPrice, discountAmount: null, totalPayAmount: mallProductTotalPayAmount }
+    : await readRenderedPage(url);
   await updateStatus({ stage: 'Commerce API 상품 상세 조회' });
   let origin = null;
   let apiPrices = null;
   try {
-    const product = await getProductFromCommerceApi(no, await commerceAccessToken(cfg.apiConfig));
+    const product = await getProductFromCommerceApi(no, await commerceAccessToken(cfg.smartstoreApiConfig));
     origin = product.originProduct || {};
     apiPrices = pricesFromCommerceApi(origin);
   } catch (_) {
@@ -300,20 +468,31 @@ async function validateOne(url, cfg, position, total) {
     salesPrice: apiPrices?.salesPrice ?? page.salesPrice,
     discountedPrice: apiPrices?.discountedPrice ?? page.discountedPrice,
     discountAmount: apiPrices?.discountAmount ?? page.discountAmount,
-    totalPayAmount: page.totalPayAmount ?? null,
+    totalPayAmount: mallProductTotalPayAmount ?? page.totalPayAmount ?? null,
     imageUrl: null, imageSalesPrice: null, imageDiscountedPrice: null,
-    imageDiscountAmount: null, imageTotalPayAmount: null
+    imageDiscountAmount: null, imageTotalPayAmount: null, imageErrors: []
   };
-  await updateStatus({ totalPayAmount: row.totalPayAmount, totalPayAmountSource: '상세페이지에 표시된 최대 할인가' });
-  if (!cfg.apiConfig?.generativeAiApiKey) {
+  await updateStatus({
+    totalPayAmount: row.totalPayAmount,
+    totalPayAmountSource: fromMallProduct ? '판매처 상품 목록에 표시된 최대 할인가' : '상세페이지에 표시된 최대 할인가'
+  });
+  if (!cfg.visionAiApiConfig?.apiKey) {
     await updateStatus({ stage: '이미지 가격 검증 건너뜀 (생성형AI API 키 없음)' });
     return row;
   }
   if (!origin) return row;
   const images = imageUrls(origin.detailContent || '');
   for (let index = 0; index < images.length; index++) {
-    await updateStatus({ stage: `상세 이미지 ${index + 1}/${images.length} ${cfg.apiConfig.aiProvider === 'google' ? 'Google AI' : 'OpenAI'} 가격 분석`, currentImage: index + 1, imageTotal: images.length });
-    const extracted = await imagePrices(images[index], cfg.apiConfig);
+    await updateStatus({ stage: `상세 이미지 ${index + 1}/${images.length} ${cfg.visionAiApiConfig.provider === 'google' ? 'Google AI' : 'OpenAI'} 가격 분석`, currentImage: index + 1, imageTotal: images.length });
+    let extracted;
+    try {
+      extracted = await imagePrices(images[index], cfg.visionAiApiConfig);
+    } catch (error) {
+      // One malformed or unsupported image must not prevent later price images
+      // or the product's CSV row from being collected.
+      row.imageErrors.push({ imageUrl: images[index], error: error.message });
+      continue;
+    }
     if (extracted?.is_price_image && extracted.sales_price != null && (extracted.discounted_price != null || extracted.total_pay_amount != null)) {
       row.imageUrl = images[index];
       row.imageSalesPrice = extracted.sales_price;
@@ -333,17 +512,30 @@ async function validateOne(url, cfg, position, total) {
 }
 
 async function runValidation(reason = 'manual') {
-  const cfg = await settings(), urls = urlsToList(cfg.urls);
-  if (!urls.length) throw new Error('설정에 상품 URL을 한 개 이상 입력해 주세요.');
+  const cfg = await settings(), inputUrls = urlsToList(cfg.urls);
+  if (!inputUrls.length) throw new Error('설정에 상품 상세 URL 또는 판매처 URL을 한 개 이상 입력해 주세요.');
   const now = new Date(), pad = value => String(value).padStart(2, '0');
   const filename = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.csv`;
   const run = { filename, rows: [] };
-  const status = { running: true, reason, total: urls.length, done: 0, current: 0, currentUrl: '', currentImage: 0, imageTotal: 0, stage: '검증 준비', filename, errors: [] };
+  const status = { running: true, reason, total: 0, done: 0, current: 0, currentUrl: '', currentImage: 0, imageTotal: 0, stage: '수집 대상 준비', filename, errors: [] };
   await setStatus(status);
-  for (let index = 0; index < urls.length; index++) {
-    try { run.rows.push(await validateOne(urls[index], cfg, index + 1, urls.length)); }
+  const targets = await collectValidationTargets(inputUrls, status);
+  if (!targets.length) throw new Error('검증할 상품을 찾지 못했습니다. 판매처 URL과 로그인 상태를 확인해 주세요.');
+  status.total = targets.length;
+  await updateStatus({ total: targets.length, stage: `검증 대상 ${targets.length}개 준비 완료`, currentMallUrl: '', mallProductPage: 0 });
+  for (let index = 0; index < targets.length; index++) {
+    try {
+      const row = await validateOne(targets[index], cfg, index + 1, targets.length);
+      run.rows.push(row);
+      for (const imageError of row.imageErrors) {
+        status.errors.push({ url: row.url, ...imageError });
+      }
+      if (row.imageErrors.length) {
+        await updateStatus({ stage: '일부 상세 이미지 분석 건너뜀', errors: status.errors });
+      }
+    }
     catch (error) {
-      status.errors.push({ url: urls[index], error: error.message });
+      status.errors.push({ url: targets[index].url, error: error.message });
       await updateStatus({ stage: '상품 처리 오류', errors: status.errors, error: error.message });
     }
     status.done = index + 1;
@@ -352,9 +544,9 @@ async function runValidation(reason = 'manual') {
   try {
     await updateStatus({ stage: 'CSV 파일 저장' });
     await writeCsv(run);
-    await setStatus({ ...status, running: false, done: urls.length, stage: '검증 완료', finishedAt: new Date().toISOString() });
+    await setStatus({ ...status, running: false, done: targets.length, total: targets.length, stage: '검증 완료', finishedAt: new Date().toISOString() });
   } catch (error) {
-    await setStatus({ ...status, running: false, done: urls.length, stage: 'CSV 저장 실패', error: error.message, finishedAt: new Date().toISOString() });
+    await setStatus({ ...status, running: false, done: targets.length, total: targets.length, stage: 'CSV 저장 실패', error: error.message, finishedAt: new Date().toISOString() });
   }
 }
 
@@ -389,13 +581,14 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     }
     if (request.action === 'exportSettings') {
       const saved = await settings();
-      return { success: true, settings: { _version: '0.3.1', ...saved, urls: urlsToList(saved.urls) } };
+      return { success: true, settings: { _version: '0.3.2', ...saved, urls: urlsToList(saved.urls) } };
     }
     if (request.action === 'importSettings') {
       const imported = request.settings || {};
       await chrome.storage.local.set({
         urls: urlsToList(imported.urls).join('\n'),
-        apiConfig: imported.apiConfig || DEFAULTS.apiConfig,
+        smartstoreApiConfig: imported.smartstoreApiConfig || DEFAULTS.smartstoreApiConfig,
+        visionAiApiConfig: imported.visionAiApiConfig || DEFAULTS.visionAiApiConfig,
         slackConfig: imported.slackConfig || DEFAULTS.slackConfig,
         scheduleConfig: imported.scheduleConfig || DEFAULTS.scheduleConfig
       });

@@ -8,20 +8,20 @@
     <input id="importFile" type="file" accept="application/json" hidden>
   </div>
   <section>
-    <label>상품 상세 URL <small>한 줄에 하나</small></label>
-    <textarea id="urls" rows="7" placeholder="https://brand.naver.com/store/products/123456"></textarea>
+    <label>상품 또는 판매처 URL <small>한 줄에 하나 · 판매처 URL은 전체 상품을 수집합니다.</small></label>
+    <textarea id="urls" rows="7" placeholder="https://brand.naver.com/store/products/123456&#10;https://brand.naver.com/store"></textarea>
   </section>
   <section>
     <h2>커머스API 설정</h2>
-    <label>애플리케이션 ID</label><input id="naverClientId" placeholder="OAuth 자동 발급">
-    <label>애플리케이션 시크릿</label><input id="naverClientSecret" type="password">
+    <label>애플리케이션 ID</label><input id="smartstoreClientId" placeholder="OAuth 자동 발급">
+    <label>애플리케이션 시크릿</label><input id="smartstoreClientSecret" type="password">
   </section>
   <section>
     <h2>생성형AI API 설정</h2>
     <label>재공업체</label>
-    <select id="aiProvider"><option value="openai">OpenAI</option><option value="google" selected>Google Gemini</option></select>
-    <label>API 키</label><input id="generativeAiKey" type="password">
-    <label>Vision 모델</label><input id="model" placeholder="gpt-4o-mini 또는 gemini-3.1-flash-lite">
+    <select id="visionAiProvider"><option value="openai">OpenAI</option><option value="google" selected>Google Gemini</option></select>
+    <label>API 키</label><input id="visionAiApiKey" type="password">
+    <label>Vision 모델</label><input id="visionAiModel" placeholder="gpt-4o-mini 또는 gemini-3.1-flash-lite">
   </section>
   <section>
     <h2>Slack 경고</h2>

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "네이버 가격 검증",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "네이버 상품의 실제 가격과 상세페이지 이미지 가격을 검증합니다.",
   "permissions": ["storage", "tabs", "scripting", "downloads", "alarms"],
   "host_permissions": [
@@ -16,7 +16,7 @@
   ],
   "background": { "service_worker": "service-worker.js" },
   "content_scripts": [{
-    "matches": ["https://brand.naver.com/*/products/*", "https://smartstore.naver.com/*/products/*"],
+    "matches": ["https://brand.naver.com/*", "https://smartstore.naver.com/*"],
     "js": ["content.js"],
     "run_at": "document_start"
   }],
