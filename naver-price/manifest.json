@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "네이버 가격 검증",
+  "version": "0.1.0",
+  "description": "네이버 상품의 실제 가격과 상세페이지 이미지 가격을 검증합니다.",
+  "permissions": ["storage", "tabs", "scripting", "downloads", "alarms"],
+  "host_permissions": [
+    "https://brand.naver.com/*",
+    "https://smartstore.naver.com/*",
+    "https://api.commerce.naver.com/*",
+    "https://api.openai.com/*",
+    "https://slack.com/*",
+    "https://*.pstatic.net/*",
+    "https://*.naver.net/*"
+  ],
+  "background": { "service_worker": "service-worker.js" },
+  "content_scripts": [{
+    "matches": ["https://brand.naver.com/*/products/*", "https://smartstore.naver.com/*/products/*"],
+    "js": ["content.js"],
+    "run_at": "document_start"
+  }],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "네이버 가격 검증",
+    "default_icon": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+  },
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+}
