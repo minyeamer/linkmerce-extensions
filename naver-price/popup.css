@@ -7,6 +7,8 @@ h1{font-size:17px;margin:0}
 section{background:#fff;border:1px solid #e2e6e9;border-radius:8px;padding:12px;margin:9px 0}
 h2{font-size:13px;margin:0 0 9px}
 label{display:block;font-weight:600;margin:7px 0 4px}
+.url-label{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.url-label small{text-align:right}
 small,p{font-size:11px;color:#777;font-weight:400}
 textarea,input,select{width:100%;border:1px solid #ccd3d8;border-radius:5px;padding:7px;font:12px Consolas,"Malgun Gothic",sans-serif;background:#fff}
 .control-row{display:flex;align-items:center;gap:14px;margin:7px 0 4px}

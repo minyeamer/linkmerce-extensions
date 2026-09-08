@@ -8,8 +8,12 @@
     <input id="importFile" type="file" accept="application/json" hidden>
   </div>
   <section>
-    <label>상품 또는 판매처 URL <small>한 줄에 하나 · 판매처 URL은 전체 상품을 수집합니다.</small></label>
+    <label class="url-label"><span>상품 또는 판매처 URL</span><small>한 줄에 하나 · 판매처 URL은 전체 상품을 수집합니다.</small></label>
     <textarea id="urls" rows="7" placeholder="https://brand.naver.com/store/products/123456&#10;https://brand.naver.com/store"></textarea>
+  </section>
+  <section>
+    <label class="url-label"><span>제외 상품 URL</span><small>한 줄에 하나 · 상품코드가 같은 상품은 검증하지 않습니다.</small></label>
+    <textarea id="excludedProductUrls" rows="7" placeholder="https://brand.naver.com/store/products/123456"></textarea>
   </section>
   <section>
     <h2>커머스API 설정</h2>

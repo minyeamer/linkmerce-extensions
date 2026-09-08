@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const ids = [
-  'urls', 'smartstoreClientId', 'smartstoreClientSecret', 'visionAiProvider', 'visionAiApiKey', 'visionAiModel',
+  'urls', 'excludedProductUrls', 'smartstoreClientId', 'smartstoreClientSecret', 'visionAiProvider', 'visionAiApiKey', 'visionAiModel',
   'slackEnabled', 'slackToken', 'slackChannel', 'scheduleEnabled', 'scheduleTime'
 ];
 
@@ -15,6 +15,7 @@ function values() {
   const provider = $('visionAiProvider').value === 'google' ? 'google' : 'openai';
   return {
     urls: $('urls').value,
+    excludedProductUrls: $('excludedProductUrls').value,
     smartstoreApiConfig: {
       clientId: $('smartstoreClientId').value.trim(),
       clientSecret: $('smartstoreClientSecret').value.trim()
@@ -37,6 +38,9 @@ function fill(settings) {
   const smartstoreApiConfig = settings.smartstoreApiConfig || {};
   const visionAiApiConfig = settings.visionAiApiConfig || {};
   $('urls').value = Array.isArray(settings.urls) ? settings.urls.join('\n') : (settings.urls || '');
+  $('excludedProductUrls').value = Array.isArray(settings.excludedProductUrls)
+    ? settings.excludedProductUrls.join('\n')
+    : (settings.excludedProductUrls || '');
   $('smartstoreClientId').value = smartstoreApiConfig.clientId || '';
   $('smartstoreClientSecret').value = smartstoreApiConfig.clientSecret || '';
   $('visionAiProvider').value = visionAiApiConfig.provider === 'openai' ? 'openai' : 'google';

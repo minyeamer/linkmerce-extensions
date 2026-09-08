@@ -2,7 +2,7 @@ importScripts('vendor-bcrypt.js');
 
 const CSV_HEADER = ['상품명', '상품 주소', '정상가', '할인가', '최대 할인가', '이미지 주소', '정상가(이미지)', '할인가(이미지)', '최대 할인가(이미지)'];
 const DEFAULTS = {
-  urls: '', scheduleConfig: { enabled: false, time: '09:00' },
+  urls: '', excludedProductUrls: '', scheduleConfig: { enabled: false, time: '09:00' },
   smartstoreApiConfig: { clientId: '', clientSecret: '' },
   visionAiApiConfig: { provider: 'google', apiKey: '', model: 'gemini-3.1-flash-lite' },
   slackConfig: { enabled: false, token: '', channel: '' }
@@ -80,11 +80,21 @@ function mallProductsPageUrl(mallUrl, page, size = 80) {
   return `${parsed.origin}/${mallId}/category/ALL?st=RECENT&dt=IMAGE&page=${page}&size=${size}`;
 }
 
-function uniqueTargets(targets) {
+function excludedProductCodes(excludedProductUrls) {
+  const codes = new Set();
+  for (const url of urlsToList(excludedProductUrls)) {
+    const code = productNo(url);
+    if (!code) throw new Error('제외 상품 URL에는 네이버 상품 상세 URL만 입력할 수 있습니다.');
+    codes.add(code);
+  }
+  return codes;
+}
+
+function uniqueTargets(targets, excludedCodes) {
   const seen = new Set();
   return targets.filter(target => {
     const code = productNo(target.url);
-    if (!code || seen.has(code)) return false;
+    if (!code || excludedCodes.has(code) || seen.has(code)) return false;
     seen.add(code);
     return true;
   });
@@ -208,7 +218,7 @@ async function goToNextMallProductPage(tabId) {
   throw new Error('다음 상품 목록 페이지로 이동하지 못했습니다.');
 }
 
-async function readMallProducts(mallUrl, status) {
+async function readMallProducts(mallUrl, status, excludedCodes) {
   const size = 80;
   const mallProducts = [];
   const seenProductCodes = new Set();
@@ -232,6 +242,7 @@ async function readMallProducts(mallUrl, status) {
       }
       const mallProductPage = await chrome.tabs.sendMessage(tab.id, { type: 'READ_MALL_PRODUCTS' });
       const pageMallProducts = (mallProductPage?.mallProducts || []).filter(mallProduct => {
+        if (excludedCodes.has(mallProduct.productCode)) return false;
         if (seenProductCodes.has(mallProduct.productCode)) return false;
         seenProductCodes.add(mallProduct.productCode);
         return true;
@@ -246,7 +257,8 @@ async function readMallProducts(mallUrl, status) {
   }
 }
 
-async function collectValidationTargets(inputUrls, status) {
+async function collectValidationTargets(inputUrls, excludedProductUrls, status) {
+  const excludedCodes = excludedProductCodes(excludedProductUrls);
   const mallUrls = [];
   const productUrls = [];
   for (const value of inputUrls) {
@@ -260,14 +272,14 @@ async function collectValidationTargets(inputUrls, status) {
   const validationTargets = [];
   for (const mallUrl of [...new Set(mallUrls)]) {
     try {
-      validationTargets.push(...await readMallProducts(mallUrl, status));
+      validationTargets.push(...await readMallProducts(mallUrl, status, excludedCodes));
     } catch (error) {
       status.errors.push({ url: mallUrl, error: error.message });
       await updateStatus({ stage: '판매처 상품 목록 수집 오류', errors: status.errors, error: error.message });
     }
   }
   // Store products deliberately run first; directly entered product URLs follow.
-  return uniqueTargets([...validationTargets, ...productUrls]);
+  return uniqueTargets([...validationTargets, ...productUrls], excludedCodes);
 }
 
 function responseText(data) {
@@ -547,7 +559,7 @@ async function runValidation(reason = 'manual') {
   const run = { filename, rows: [] };
   const status = { running: true, reason, total: 0, done: 0, current: 0, currentUrl: '', currentImage: 0, imageTotal: 0, stage: '수집 대상 준비', filename, errors: [] };
   await setStatus(status);
-  const targets = await collectValidationTargets(inputUrls, status);
+  const targets = await collectValidationTargets(inputUrls, cfg.excludedProductUrls, status);
   if (!targets.length) throw new Error('검증할 상품을 찾지 못했습니다. 판매처 URL과 로그인 상태를 확인해 주세요.');
   status.total = targets.length;
   await updateStatus({ total: targets.length, stage: `검증 대상 ${targets.length}개 준비 완료`, currentMallUrl: '', mallProductPage: 0 });
@@ -609,12 +621,21 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     }
     if (request.action === 'exportSettings') {
       const saved = await settings();
-      return { success: true, settings: { _version: '0.3.4', ...saved, urls: urlsToList(saved.urls) } };
+      return {
+        success: true,
+        settings: {
+          _version: '0.3.5',
+          ...saved,
+          urls: urlsToList(saved.urls),
+          excludedProductUrls: urlsToList(saved.excludedProductUrls)
+        }
+      };
     }
     if (request.action === 'importSettings') {
       const imported = request.settings || {};
       await chrome.storage.local.set({
         urls: urlsToList(imported.urls).join('\n'),
+        excludedProductUrls: urlsToList(imported.excludedProductUrls).join('\n'),
         smartstoreApiConfig: imported.smartstoreApiConfig || DEFAULTS.smartstoreApiConfig,
         visionAiApiConfig: imported.visionAiApiConfig || DEFAULTS.visionAiApiConfig,
         slackConfig: imported.slackConfig || DEFAULTS.slackConfig,
