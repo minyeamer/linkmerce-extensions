@@ -1,26 +1,46 @@
 const $ = id => document.getElementById(id);
-const ids = ['urls', 'naverClientId', 'naverClientSecret', 'openaiKey', 'model', 'slackEnabled', 'slackToken', 'slackChannel', 'scheduleEnabled', 'scheduleTime'];
+const ids = [
+  'urls', 'naverClientId', 'naverClientSecret', 'aiProvider', 'generativeAiKey', 'model',
+  'slackEnabled', 'slackToken', 'slackChannel', 'scheduleEnabled', 'scheduleTime'
+];
+
+const defaultModel = provider => provider === 'google' ? 'gemini-3.1-flash-lite' : 'gpt-4o-mini';
+let lastAiProvider = 'google';
+
+function syncModelPlaceholder() {
+  $('model').placeholder = defaultModel($('aiProvider').value);
+}
 
 function values() {
+  const aiProvider = $('aiProvider').value === 'google' ? 'google' : 'openai';
   return {
     urls: $('urls').value,
     apiConfig: {
       naverClientId: $('naverClientId').value.trim(),
       naverClientSecret: $('naverClientSecret').value.trim(),
-      openaiApiKey: $('openaiKey').value.trim(),
-      model: $('model').value.trim() || 'gpt-4o-mini'
+      aiProvider,
+      generativeAiApiKey: $('generativeAiKey').value.trim(),
+      model: $('model').value.trim() || defaultModel(aiProvider)
     },
-    slackConfig: { enabled: $('slackEnabled').checked, token: $('slackToken').value.trim(), channel: $('slackChannel').value.trim() },
+    slackConfig: {
+      enabled: $('slackEnabled').checked,
+      token: $('slackToken').value.trim(),
+      channel: $('slackChannel').value.trim()
+    },
     scheduleConfig: { enabled: $('scheduleEnabled').checked, time: $('scheduleTime').value || '09:00' }
   };
 }
 
 function fill(settings) {
+  const api = settings.apiConfig || {};
   $('urls').value = Array.isArray(settings.urls) ? settings.urls.join('\n') : (settings.urls || '');
-  $('naverClientId').value = settings.apiConfig?.naverClientId || '';
-  $('naverClientSecret').value = settings.apiConfig?.naverClientSecret || '';
-  $('openaiKey').value = settings.apiConfig?.openaiApiKey || '';
-  $('model').value = settings.apiConfig?.model || 'gpt-4o-mini';
+  $('naverClientId').value = api.naverClientId || '';
+  $('naverClientSecret').value = api.naverClientSecret || '';
+  $('aiProvider').value = api.aiProvider === 'openai' ? 'openai' : 'google';
+  $('generativeAiKey').value = api.generativeAiApiKey || '';
+  $('model').value = api.model || defaultModel($('aiProvider').value);
+  lastAiProvider = $('aiProvider').value;
+  syncModelPlaceholder();
   $('slackEnabled').checked = !!settings.slackConfig?.enabled;
   $('slackToken').value = settings.slackConfig?.token || '';
   $('slackChannel').value = settings.slackConfig?.channel || '';
@@ -40,7 +60,7 @@ function showStatus(status) {
     status.stage,
     status.currentUrl && `상품 ${status.current}/${status.total}`,
     status.imageTotal ? `이미지 ${status.currentImage}/${status.imageTotal}` : '',
-    status.maximumPriceSource && `확인한 최대 할인가: ${status.maximumPrice?.toLocaleString()}원`,
+    status.totalPayAmountSource && `확인한 최대 할인가: ${status.totalPayAmount?.toLocaleString()}원`,
     status.filename && `CSV: 다운로드/${status.filename}`,
     status.error && `오류: ${status.error}`,
     status.errors?.length ? `상품 오류 ${status.errors.length}건` : ''
@@ -59,8 +79,16 @@ async function save() {
   if (!result.success) throw new Error(result.error);
 }
 
-ids.forEach(id => $(id).addEventListener(id.endsWith('Enabled') ? 'change' : 'input', () => save().catch(error => msg(error.message, true))));
-$('save').onclick = async () => { try { await save(); msg('설정했습니다.'); } catch (error) { msg(error.message, true); } };
+ids.forEach(id => $(id).addEventListener(id.endsWith('Enabled') || id === 'aiProvider' ? 'change' : 'input', () => {
+  if (id === 'aiProvider') {
+    const provider = $('aiProvider').value;
+    if (!$('model').value || $('model').value === defaultModel(lastAiProvider)) $('model').value = defaultModel(provider);
+    lastAiProvider = provider;
+    syncModelPlaceholder();
+  }
+  save().catch(error => msg(error.message, true));
+}));
+$('save').onclick = async () => { try { await save(); msg('설정되었습니다.'); } catch (error) { msg(error.message, true); } };
 $('run').onclick = async () => {
   try {
     await save();

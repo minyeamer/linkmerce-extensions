@@ -8,13 +8,16 @@ section{background:#fff;border:1px solid #e2e6e9;border-radius:8px;padding:12px;
 h2{font-size:13px;margin:0 0 9px}
 label{display:block;font-weight:600;margin:7px 0 4px}
 small,p{font-size:11px;color:#777;font-weight:400}
-textarea,input{width:100%;border:1px solid #ccd3d8;border-radius:5px;padding:7px;font:12px Consolas,"Malgun Gothic",sans-serif}
+textarea,input,select{width:100%;border:1px solid #ccd3d8;border-radius:5px;padding:7px;font:12px Consolas,"Malgun Gothic",sans-serif;background:#fff}
 .control-row{display:flex;align-items:center;gap:14px;margin:7px 0 4px}
 .switch{display:inline-flex;align-items:center;gap:6px;margin:0;font-weight:600;cursor:pointer}
 .switch input[type=checkbox]{width:14px;height:14px;margin:0;padding:0;accent-color:#03c75a}
 .switch span{line-height:14px}
+section>.control-row+input{margin-top:7px}
+section>input+input{margin-top:7px}
 input[type=time]{width:120px}
 .buttons{display:flex;gap:7px;margin-top:8px}
+.top-actions{margin:0 0 10px}
 button{flex:1;border:0;border-radius:6px;padding:9px;background:#e8ecef;cursor:pointer;font-weight:600}
 .primary{background:#03c75a;color:#fff}
 #message{min-height:16px;white-space:pre-wrap;color:#246}

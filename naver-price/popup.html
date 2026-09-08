@@ -3,21 +3,30 @@
 <head><meta charset="utf-8"><link rel="stylesheet" href="popup.css"></head>
 <body><main>
   <header><h1>네이버 가격 검증</h1><span id="status">대기</span></header>
+  <div class="buttons top-actions">
+    <button id="import">설정 불러오기</button><button id="run" class="primary">실행</button>
+    <input id="importFile" type="file" accept="application/json" hidden>
+  </div>
   <section>
     <label>상품 상세 URL <small>한 줄에 하나</small></label>
     <textarea id="urls" rows="7" placeholder="https://brand.naver.com/store/products/123456"></textarea>
   </section>
   <section>
-    <h2>API 설정</h2>
-    <label>커머스API 애플리케이션 ID</label><input id="naverClientId" placeholder="OAuth 자동 발급">
-    <label>커머스API 애플리케이션 시크릿</label><input id="naverClientSecret" type="password">
-    <label>OpenAI API키</label><input id="openaiKey" type="password">
-    <label>OpenAI Vision 모델</label><input id="model" placeholder="gpt-4o-mini">
+    <h2>커머스API 설정</h2>
+    <label>애플리케이션 ID</label><input id="naverClientId" placeholder="OAuth 자동 발급">
+    <label>애플리케이션 시크릿</label><input id="naverClientSecret" type="password">
+  </section>
+  <section>
+    <h2>생성형AI API 설정</h2>
+    <label>재공업체</label>
+    <select id="aiProvider"><option value="openai">OpenAI</option><option value="google" selected>Google Gemini</option></select>
+    <label>API 키</label><input id="generativeAiKey" type="password">
+    <label>Vision 모델</label><input id="model" placeholder="gpt-4o-mini 또는 gemini-3.1-flash-lite">
   </section>
   <section>
     <h2>Slack 경고</h2>
     <div class="control-row"><label class="switch"><input id="slackEnabled" type="checkbox"><span>사용</span></label></div>
-    <input id="slackToken" type="password" placeholder="xoxb-…">
+    <input id="slackToken" type="password" placeholder="xoxb-...">
     <input id="slackChannel" placeholder="채널 ID 또는 #채널명">
   </section>
   <section>
@@ -25,8 +34,7 @@
     <div class="control-row"><label class="switch"><input id="scheduleEnabled" type="checkbox"><span>사용</span></label><input id="scheduleTime" type="time" value="09:00"></div>
     <p>Chrome이 실행 중이고 네이버 로그인 세션이 유효해야 합니다.</p>
   </section>
-  <div class="buttons"><button id="save">설정 저장</button><button id="run" class="primary">지금 검증</button></div>
-  <div class="buttons"><button id="export">설정 내보내기</button><button id="import">설정 불러오기</button><input id="importFile" type="file" accept="application/json" hidden></div>
+  <div class="buttons"><button id="save">설정 저장</button><button id="export">설정 내보내기</button></div>
   <p id="message"></p>
 </main><script src="popup.js"></script></body>
 </html>

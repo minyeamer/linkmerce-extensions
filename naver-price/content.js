@@ -21,17 +21,25 @@ function extractRenderedPrices() {
   const area = document.querySelector('#product-main-price-area');
   const title = document.querySelector('meta[property="og:title"]')?.content
     || document.querySelector('h1')?.innerText || document.title.replace(/\s*:\s*.*$/, '');
-  if (!area) return { title: title.trim(), normalPrice: null, benefitPrice: null, maximumPrice: null };
+  // Naver brand pages commonly append the store name as " : 스토어명".
+  const productTitle = title.trim().replace(/\s+:\s+[^:]+$/, '');
+  if (!area) {
+    return {
+      title: productTitle, salesPrice: null, discountedPrice: null,
+      discountAmount: null, totalPayAmount: null
+    };
+  }
 
-  const salePrice = priceFollowingLabel(area, '상품 가격', { excludeStrong: true });
-  const normalPrice = priceFollowingLabel(area, '할인 전 가격');
-  const maximumPrice = toPrice(area.querySelector(':scope > div > div strong')?.textContent);
+  const discountedPrice = priceFollowingLabel(area, '\uC0C1\uD488 \uAC00\uACA9', { excludeStrong: true });
+  const salesPrice = priceFollowingLabel(area, '\uD560\uC778 \uC804 \uAC00\uACA9');
+  const totalPayAmount = toPrice(area.querySelector(':scope > div > div strong')?.textContent);
   return {
-    title: title.trim(),
-    // 할인 전 가격이 없으면 상품 가격이 정상가이기도 합니다.
-    normalPrice: normalPrice ?? salePrice,
-    benefitPrice: salePrice,
-    maximumPrice
+    title: productTitle,
+    // No pre-discount price means the displayed product price is the sales price.
+    salesPrice: salesPrice ?? discountedPrice,
+    discountedPrice,
+    discountAmount: null,
+    totalPayAmount
   };
 }
 

@@ -3,7 +3,10 @@ importScripts('vendor-bcrypt.js');
 const CSV_HEADER = ['상품명', '상품 주소', '정상가', '할인가', '최대 할인가', '이미지 주소', '정상가(이미지)', '할인가(이미지)', '최대 할인가(이미지)'];
 const DEFAULTS = {
   urls: '', scheduleConfig: { enabled: false, time: '09:00' },
-  apiConfig: { naverClientId: '', naverClientSecret: '', openaiApiKey: '', model: 'gpt-4o-mini' },
+  apiConfig: {
+    naverClientId: '', naverClientSecret: '', aiProvider: 'google',
+    generativeAiApiKey: '', model: 'gemini-3.1-flash-lite'
+  },
   slackConfig: { enabled: false, token: '', channel: '' }
 };
 
@@ -15,7 +18,26 @@ const cleanPrice = value => {
 const csv = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
 const productNo = url => new URL(url).pathname.match(/\/products\/(\d+)/)?.[1] || null;
 
-async function settings() { return { ...DEFAULTS, ...(await chrome.storage.local.get(DEFAULTS)) }; }
+function normalizeApiConfig(apiConfig = {}) {
+  const aiProvider = apiConfig.aiProvider === 'openai' ? 'openai' : 'google';
+  const defaultModel = aiProvider === 'google' ? 'gemini-3.1-flash-lite' : 'gpt-4o-mini';
+  return {
+    ...DEFAULTS.apiConfig, ...apiConfig,
+    aiProvider,
+    generativeAiApiKey: apiConfig.generativeAiApiKey || '',
+    model: apiConfig.aiProvider ? (apiConfig.model || defaultModel) : defaultModel
+  };
+}
+
+async function settings() {
+  const saved = await chrome.storage.local.get(DEFAULTS);
+  return {
+    ...DEFAULTS, ...saved,
+    apiConfig: normalizeApiConfig(saved.apiConfig),
+    slackConfig: { ...DEFAULTS.slackConfig, ...(saved.slackConfig || {}) },
+    scheduleConfig: { ...DEFAULTS.scheduleConfig, ...(saved.scheduleConfig || {}) }
+  };
+}
 async function setStatus(status) { await chrome.storage.local.set({ runStatus: status }); }
 async function updateStatus(patch) {
   const { runStatus = {} } = await chrome.storage.local.get('runStatus');
@@ -68,22 +90,26 @@ async function getProductFromCommerceApi(no, accessToken) {
 }
 
 function pricesFromCommerceApi(originProduct) {
-  const normalPrice = cleanPrice(originProduct?.salePrice);
+  const salesPrice = cleanPrice(originProduct?.salePrice);
   const policy = originProduct?.customerBenefit?.immediateDiscountPolicy;
-  if (normalPrice == null) return { normalPrice: null, salePrice: null };
+  if (salesPrice == null) return { salesPrice: null, discountedPrice: null, discountAmount: null };
   if (!policy) {
-    return { normalPrice, salePrice: normalPrice };
+    return { salesPrice, discountedPrice: salesPrice, discountAmount: 0 };
   }
   const method = policy.discountMethod || {};
   // Never reconstruct an amount from a percentage. Only an exact won amount
   // supplied by the API is used, so no rounding rule can change the result.
-  const discount = cleanPrice(
+  const discountAmount = cleanPrice(
     policy.discountAmount
     ?? policy.immediateDiscountAmount
     ?? method.discountAmount
     ?? (method.unitType === 'WON' ? method.value : null)
   );
-  return { normalPrice, salePrice: discount == null ? null : Math.max(0, normalPrice - discount) };
+  return {
+    salesPrice,
+    discountedPrice: discountAmount == null ? null : Math.max(0, salesPrice - discountAmount),
+    discountAmount
+  };
 }
 
 async function readRenderedPage(url) {
@@ -117,24 +143,25 @@ function responseText(data) {
     .filter(item => item.type === 'output_text').map(item => item.text).join('');
 }
 
-async function imagePrices(url, api) {
+async function openAiImagePrices(url, api) {
   const schema = {
     type: 'object', additionalProperties: false,
     properties: {
       is_price_image: { type: 'boolean' }, selected_block_ordinal: { type: ['integer', 'null'] },
-      selected_block_label: { type: ['string', 'null'] }, normal_price: { type: ['integer', 'null'] },
-      sale_price: { type: ['integer', 'null'] }, coupon_discount: { type: ['integer', 'null'] },
-      maximum_discount_price: { type: ['integer', 'null'] }, evidence_text: { type: ['string', 'null'] }
+      selected_block_label: { type: ['string', 'null'] }, sales_price: { type: ['integer', 'null'] },
+      discounted_price: { type: ['integer', 'null'] }, discount_amount: { type: ['integer', 'null'] },
+      total_pay_amount: { type: ['integer', 'null'] }, evidence_text: { type: ['string', 'null'] }
     },
-    required: ['is_price_image', 'selected_block_ordinal', 'selected_block_label', 'normal_price', 'sale_price', 'coupon_discount', 'maximum_discount_price', 'evidence_text']
+    required: ['is_price_image', 'selected_block_ordinal', 'selected_block_label', 'sales_price', 'discounted_price', 'discount_amount', 'total_pay_amount', 'evidence_text']
   };
   const prompt = '상품 상세 이미지의 가격표를 읽으세요. 여러 옵션·용량 가격표가 있으면 화면에서 가장 위에 있는 가격 블록 하나만 선택합니다. 선택한 블록 안에서 정상가, 일반 할인가, 쿠폰 할인액, 쿠폰 적용 후 최종 금액(최대 할인가)을 읽습니다. 최종 금액은 쿠폰적용 시·최대할인가·최종 혜택가 등 어떤 문구로 표시될 수 있습니다. 보이는 숫자만 반환하고 계산하거나 추측하지 마세요. 정상가와 가격이 함께 있어야 가격 이미지입니다.';
+  const outputInstructions = '\nJSON fields: sales_price (normal price), discounted_price (ordinary discounted price), discount_amount (coupon discount), total_pay_amount (coupon-applied final price).';
   const response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${api.openaiApiKey}`, 'Content-Type': 'application/json' },
+    headers: { Authorization: `Bearer ${api.generativeAiApiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: api.model || 'gpt-4o-mini',
-      input: [{ role: 'user', content: [{ type: 'input_text', text: prompt }, { type: 'input_image', image_url: url, detail: 'high' }] }],
+      input: [{ role: 'user', content: [{ type: 'input_text', text: prompt + outputInstructions }, { type: 'input_image', image_url: url, detail: 'high' }] }],
       text: { format: { type: 'json_schema', name: 'price_check', strict: true, schema } }
     })
   });
@@ -142,11 +169,79 @@ async function imagePrices(url, api) {
   return JSON.parse(responseText(await response.json()));
 }
 
+const GOOGLE_PRICE_SCHEMA = {
+  type: 'object',
+  properties: {
+    is_price_image: { type: 'boolean' },
+    selected_block_ordinal: { type: ['integer', 'null'] },
+    selected_block_label: { type: ['string', 'null'] },
+    sales_price: { type: ['integer', 'null'] },
+    discounted_price: { type: ['integer', 'null'] },
+    discount_amount: { type: ['integer', 'null'] },
+    total_pay_amount: { type: ['integer', 'null'] },
+    evidence_text: { type: ['string', 'null'] }
+  },
+  required: [
+    'is_price_image', 'selected_block_ordinal', 'selected_block_label', 'sales_price',
+    'discounted_price', 'discount_amount', 'total_pay_amount', 'evidence_text'
+  ]
+};
+
+const GOOGLE_PRICE_PROMPT = [
+  '상품 상세 이미지의 가격표를 읽으세요. 여러 옵션·용량 가격표가 있으면 화면에서 가장 위에 있는 가격 블록 하나만 선택합니다.',
+  '선택한 블록 안에서 정상가, 일반 할인가, 쿠폰 할인액, 쿠폰 적용 후 최종 금액(최대 할인가)을 읽습니다.',
+  '최종 금액은 쿠폰적용 시·최대할인가·최종 혜택가 등 어떤 문구로 표시될 수 있습니다.',
+  '보이는 숫자만 반환하고 계산하거나 추측하지 마세요. 정상가와 가격이 함께 있어야 가격 이미지입니다.',
+  'JSON 필드는 sales_price(정상가), discounted_price(일반 할인가), discount_amount(쿠폰 할인액), total_pay_amount(쿠폰 적용 후 최종 금액)입니다.'
+].join(' ');
+
+function base64FromBytes(bytes) {
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function googleImagePrices(url, api) {
+  const imageResponse = await fetch(url);
+  if (!imageResponse.ok) throw new Error(`Google image download error: ${imageResponse.status}`);
+  const mimeType = imageResponse.headers.get('content-type')?.split(';')[0] || 'image/jpeg';
+  const imageData = base64FromBytes(new Uint8Array(await imageResponse.arrayBuffer()));
+  const model = api.model || 'gemini-3.1-flash-lite';
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(api.generativeAiApiKey)}`;
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [
+        { text: GOOGLE_PRICE_PROMPT },
+        { inlineData: { mimeType, data: imageData } }
+      ] }],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseJsonSchema: GOOGLE_PRICE_SCHEMA,
+        maxOutputTokens: 500
+      }
+    })
+  });
+  if (!response.ok) throw new Error(`Google AI error: ${response.status}`);
+  const data = await response.json();
+  const text = (data.candidates?.[0]?.content?.parts || []).map(part => part.text || '').join('');
+  if (!text) throw new Error('Google AI returned no text response.');
+  return JSON.parse(text);
+}
+
+async function imagePrices(url, api) {
+  return api.aiProvider === 'google' ? googleImagePrices(url, api) : openAiImagePrices(url, api);
+}
+
 function slackAlertText(row) {
-  const maximum = row.imageMaximum != null;
+  const maximum = row.imageTotalPayAmount != null;
   const label = maximum ? '최대 할인가' : '할인가';
-  const actual = maximum ? row.maximumPrice : row.benefitPrice;
-  const image = maximum ? row.imageMaximum : row.imageSale;
+  const actual = maximum ? row.totalPayAmount : row.discountedPrice;
+  const image = maximum ? row.imageTotalPayAmount : row.imageDiscountedPrice;
   return `:warning: 상세페이지 이미지 가격과 실제 ${label}가 다릅니다.\n*${row.title}*\n실제 ${label}: ${actual?.toLocaleString()}원 / 이미지 ${label}: ${image?.toLocaleString()}원\n상품 주소: ${row.url}`;
 }
 
@@ -172,9 +267,9 @@ async function postSlack(row, slack) {
 async function writeCsv(run) {
   const price = value => value == null ? '' : String(value);
   const lines = [CSV_HEADER.map(csv).join(',')].concat(run.rows.map(row => [
-    csv(row.title), csv(row.url), price(row.normalPrice), price(row.benefitPrice),
-    price(row.maximumPrice), csv(row.imageUrl), price(row.imageNormal),
-    price(row.imageSale), price(row.imageMaximum)
+    csv(row.title), csv(row.url), price(row.salesPrice), price(row.discountedPrice),
+    price(row.totalPayAmount), csv(row.imageUrl), price(row.imageSalesPrice),
+    price(row.imageDiscountedPrice), price(row.imageTotalPayAmount)
   ].join(',')));
   const dataUrl = `data:text/csv;charset=utf-8,${encodeURIComponent('\uFEFF' + lines.join('\r\n'))}`;
   await chrome.downloads.download({ url: dataUrl, filename: run.filename, conflictAction: 'uniquify', saveAs: false });
@@ -202,31 +297,34 @@ async function validateOne(url, cfg, position, total) {
   // The maximum discount price remains the separately-read visible DOM value.
   const row = {
     title: page.title || origin?.name || '', url,
-    normalPrice: apiPrices?.normalPrice ?? page.normalPrice,
-    benefitPrice: apiPrices?.salePrice ?? page.benefitPrice,
-    maximumPrice: page.maximumPrice ?? null,
-    imageUrl: null, imageNormal: null, imageSale: null, imageMaximum: null
+    salesPrice: apiPrices?.salesPrice ?? page.salesPrice,
+    discountedPrice: apiPrices?.discountedPrice ?? page.discountedPrice,
+    discountAmount: apiPrices?.discountAmount ?? page.discountAmount,
+    totalPayAmount: page.totalPayAmount ?? null,
+    imageUrl: null, imageSalesPrice: null, imageDiscountedPrice: null,
+    imageDiscountAmount: null, imageTotalPayAmount: null
   };
-  await updateStatus({ maximumPrice: row.maximumPrice, maximumPriceSource: '상세페이지에 표시된 최대 할인가' });
-  if (!cfg.apiConfig?.openaiApiKey) {
-    await updateStatus({ stage: '이미지 가격 검증 건너뜀 (OpenAI API 키 없음)' });
+  await updateStatus({ totalPayAmount: row.totalPayAmount, totalPayAmountSource: '상세페이지에 표시된 최대 할인가' });
+  if (!cfg.apiConfig?.generativeAiApiKey) {
+    await updateStatus({ stage: '이미지 가격 검증 건너뜀 (생성형AI API 키 없음)' });
     return row;
   }
   if (!origin) return row;
   const images = imageUrls(origin.detailContent || '');
   for (let index = 0; index < images.length; index++) {
-    await updateStatus({ stage: `상세 이미지 ${index + 1}/${images.length} OpenAI 가격 분석`, currentImage: index + 1, imageTotal: images.length });
+    await updateStatus({ stage: `상세 이미지 ${index + 1}/${images.length} ${cfg.apiConfig.aiProvider === 'google' ? 'Google AI' : 'OpenAI'} 가격 분석`, currentImage: index + 1, imageTotal: images.length });
     const extracted = await imagePrices(images[index], cfg.apiConfig);
-    if (extracted?.is_price_image && extracted.normal_price != null && (extracted.sale_price != null || extracted.maximum_discount_price != null)) {
+    if (extracted?.is_price_image && extracted.sales_price != null && (extracted.discounted_price != null || extracted.total_pay_amount != null)) {
       row.imageUrl = images[index];
-      row.imageNormal = extracted.normal_price;
-      row.imageSale = extracted.sale_price;
-      row.imageMaximum = extracted.maximum_discount_price;
+      row.imageSalesPrice = extracted.sales_price;
+      row.imageDiscountedPrice = extracted.discounted_price;
+      row.imageDiscountAmount = extracted.discount_amount;
+      row.imageTotalPayAmount = extracted.total_pay_amount;
       break;
     }
   }
-  const actual = row.imageMaximum != null ? row.maximumPrice : row.benefitPrice;
-  const image = row.imageMaximum != null ? row.imageMaximum : row.imageSale;
+  const actual = row.imageTotalPayAmount != null ? row.totalPayAmount : row.discountedPrice;
+  const image = row.imageTotalPayAmount != null ? row.imageTotalPayAmount : row.imageDiscountedPrice;
   if (actual != null && image != null && actual !== image) {
     await updateStatus({ stage: '가격 불일치 Slack 알림 전송' });
     await postSlack(row, cfg.slackConfig);
@@ -291,7 +389,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     }
     if (request.action === 'exportSettings') {
       const saved = await settings();
-      return { success: true, settings: { _version: '0.3.0', ...saved, urls: urlsToList(saved.urls) } };
+      return { success: true, settings: { _version: '0.3.1', ...saved, urls: urlsToList(saved.urls) } };
     }
     if (request.action === 'importSettings') {
       const imported = request.settings || {};
