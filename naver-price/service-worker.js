@@ -393,21 +393,39 @@ async function imagePrices(url, visionAiApiConfig, priceTarget) {
 }
 
 function slackAlertText(row) {
-  const maximum = row.imageTotalPayAmount != null;
-  const label = maximum ? '최대 할인가' : '할인가';
-  const actual = maximum ? row.totalPayAmount : row.discountedPrice;
-  const image = maximum ? row.imageTotalPayAmount : row.imageDiscountedPrice;
-  return `:warning: 상세페이지 이미지 가격과 실제 ${label}가 다릅니다.\n*${row.title}*\n실제 ${label}: ${actual?.toLocaleString()}원 / 이미지 ${label}: ${image?.toLocaleString()}원\n상품 주소: ${row.url}`;
+  const comparesMaximum = row.imageTotalPayAmount != null;
+  const label = comparesMaximum ? '최대 할인가' : '할인가';
+  const actual = comparesMaximum ? row.totalPayAmount : row.discountedPrice;
+  const image = comparesMaximum ? row.imageTotalPayAmount : row.imageDiscountedPrice;
+  const difference = image - actual;
+  const requiresAction = comparesMaximum && difference < 0;
+  const title = requiresAction
+    ? ':rotating_light: 이미지 가격 불일치 조치 바람 :rotating_light:'
+    : ':placard: 이미지 가격 불일치 알림 :placard:';
+  const differenceText = difference < 0
+    ? `이미지 가격이 실제보다 ${Math.abs(difference).toLocaleString()}원 낮음:small_red_triangle_down:`
+    : `이미지 가격이 실제보다 ${difference.toLocaleString()}원 높음:small_red_triangle:`;
+  return [
+    title,
+    '',
+    '*상품명:*',
+    row.title,
+    '',
+    '*가격 비교*',
+    `• 실제 ${label}: *${actual.toLocaleString()}원*`,
+    `• 이미지 ${label}: *${image.toLocaleString()}원*`,
+    `• 차이: *${differenceText}*`,
+    '',
+    `<${row.url}|상품 페이지 열기>${row.imageUrl ? `  ·  <${row.imageUrl}|가격 이미지 열기>` : ''}`
+  ].join('\n');
 }
 
 async function postSlackText(text, slack, imageUrl = null) {
-  const blocks = imageUrl ? [
-    { type: 'section', text: { type: 'mrkdwn', text } },
-    { type: 'image', image_url: imageUrl, alt_text: '가격이 표시된 상세페이지 이미지' }
-  ] : undefined;
+  const blocks = [{ type: 'section', text: { type: 'mrkdwn', text } }];
+  if (imageUrl) blocks.push({ type: 'image', image_url: imageUrl, alt_text: '가격이 표시된 상세페이지 이미지' });
   const response = await fetch('https://slack.com/api/chat.postMessage', {
     method: 'POST', headers: { Authorization: `Bearer ${slack.token}`, 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify({ channel: slack.channel, text, blocks, unfurl_links: true, unfurl_media: false })
+    body: JSON.stringify({ channel: slack.channel, text, blocks, unfurl_links: false, unfurl_media: false })
   });
   const data = await response.json();
   if (!data.ok) throw new Error(`Slack 오류: ${data.error || response.status}`);
@@ -415,8 +433,7 @@ async function postSlackText(text, slack, imageUrl = null) {
 
 async function postSlack(row, slack) {
   if (!slack.enabled || !slack.token || !slack.channel) return;
-  const text = slackAlertText(row);
-  await postSlackText(row.imageUrl ? `${text}\n이미지 주소: ${row.imageUrl}` : text, slack, row.imageUrl);
+  await postSlackText(slackAlertText(row), slack, row.imageUrl);
 }
 
 async function writeCsv(run) {
@@ -592,7 +609,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
     }
     if (request.action === 'exportSettings') {
       const saved = await settings();
-      return { success: true, settings: { _version: '0.3.3', ...saved, urls: urlsToList(saved.urls) } };
+      return { success: true, settings: { _version: '0.3.4', ...saved, urls: urlsToList(saved.urls) } };
     }
     if (request.action === 'importSettings') {
       const imported = request.settings || {};
