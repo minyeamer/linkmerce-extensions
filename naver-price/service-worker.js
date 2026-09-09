@@ -448,15 +448,64 @@ async function postSlack(row, slack) {
   await postSlackText(slackAlertText(row), slack, row.imageUrl);
 }
 
-async function writeCsv(run) {
+function csvText(run) {
   const price = value => value == null ? '' : String(value);
   const lines = [CSV_HEADER.map(csv).join(',')].concat(run.rows.map(row => [
     csv(row.title), csv(row.url), price(row.salesPrice), price(row.discountedPrice),
     price(row.totalPayAmount), csv(row.imageUrl), price(row.imageSalesPrice),
     price(row.imageDiscountedPrice), price(row.imageTotalPayAmount)
   ].join(',')));
-  const dataUrl = `data:text/csv;charset=utf-8,${encodeURIComponent('\uFEFF' + lines.join('\r\n'))}`;
+  return '\uFEFF' + lines.join('\r\n');
+}
+
+async function writeCsv(run, content) {
+  const dataUrl = `data:text/csv;charset=utf-8,${encodeURIComponent(content)}`;
   await chrome.downloads.download({ url: dataUrl, filename: run.filename, conflictAction: 'uniquify', saveAs: false });
+}
+
+async function postSlackCsv(run, content, slack) {
+  if (!slack.enabled || !slack.token || !slack.channel) return;
+  const file = new Blob([content], { type: 'text/csv;charset=utf-8' });
+  const authorization = { Authorization: `Bearer ${slack.token}` };
+
+  const postSlackForm = async (url, values) => {
+    const body = new URLSearchParams();
+    Object.entries(values).forEach(([key, value]) => body.set(key, String(value)));
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { ...authorization, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    });
+    const data = await response.json();
+    return { response, data };
+  };
+
+  const { response: requestResponse, data: requestData } = await postSlackForm(
+    'https://slack.com/api/files.getUploadURLExternal',
+    { filename: run.filename, length: file.size }
+  );
+  if (!requestResponse.ok || !requestData.ok || !requestData.upload_url || !requestData.file_id) {
+    throw new Error(`Slack 결과 파일 업로드 오류: ${requestData.error || requestResponse.status}`);
+  }
+
+  const uploadResponse = await fetch(requestData.upload_url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/csv;charset=utf-8' },
+    body: file
+  });
+  if (!uploadResponse.ok) throw new Error(`Slack 결과 파일 전송 오류: ${uploadResponse.status}`);
+
+  const { response: completionResponse, data: completionData } = await postSlackForm(
+    'https://slack.com/api/files.completeUploadExternal',
+    {
+      files: JSON.stringify([{ id: requestData.file_id, title: run.filename }]),
+      channel_id: slack.channel,
+      initial_comment: `:white_check_mark: ${run.rows.length}개 상품 최대할인가 검증 완료`
+    }
+  );
+  if (!completionResponse.ok || !completionData.ok) {
+    throw new Error(`Slack 결과 파일 공유 오류: ${completionData.error || completionResponse.status}`);
+  }
 }
 
 async function validateOne(target, cfg, position, total) {
@@ -583,7 +632,17 @@ async function runValidation(reason = 'manual') {
   }
   try {
     await updateStatus({ stage: 'CSV 파일 저장' });
-    await writeCsv(run);
+    const content = csvText(run);
+    await writeCsv(run, content);
+    if (cfg.slackConfig?.enabled && cfg.slackConfig.token && cfg.slackConfig.channel) {
+      try {
+        await updateStatus({ stage: 'Slack 결과 파일 전송' });
+        await postSlackCsv(run, content, cfg.slackConfig);
+      } catch (error) {
+        status.slackFileError = error.message;
+        await updateStatus({ stage: 'Slack 결과 파일 전송 실패', slackFileError: error.message });
+      }
+    }
     await setStatus({ ...status, running: false, done: targets.length, total: targets.length, stage: '검증 완료', finishedAt: new Date().toISOString() });
   } catch (error) {
     await setStatus({ ...status, running: false, done: targets.length, total: targets.length, stage: 'CSV 저장 실패', error: error.message, finishedAt: new Date().toISOString() });
@@ -624,7 +683,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       return {
         success: true,
         settings: {
-          _version: '0.3.5',
+          _version: '0.3.6',
           ...saved,
           urls: urlsToList(saved.urls),
           excludedProductUrls: urlsToList(saved.excludedProductUrls)

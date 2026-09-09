@@ -71,6 +71,7 @@ function showStatus(status) {
     status.imageTotal ? `이미지 ${status.currentImage}/${status.imageTotal}` : '',
     status.totalPayAmountSource && `확인한 최대 할인가: ${status.totalPayAmount?.toLocaleString()}원`,
     status.filename && `CSV: 다운로드/${status.filename}`,
+    status.slackFileError && `Slack 결과 파일 오류: ${status.slackFileError}`,
     status.error && `오류: ${status.error}`,
     status.errors?.length ? `상품 오류 ${status.errors.length}건` : '',
     ...(status.errors || []).flatMap(item => [
