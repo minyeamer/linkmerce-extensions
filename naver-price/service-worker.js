@@ -463,9 +463,24 @@ async function writeCsv(run, content) {
   await chrome.downloads.download({ url: dataUrl, filename: run.filename, conflictAction: 'uniquify', saveAs: false });
 }
 
+function slackCsvFile(content) {
+  // Slack은 업로드된 UTF-8 CSV의 BOM을 제거한다. Excel이 인코딩을 자동 감지할 수
+  // 있도록 Slack 전송본만 UTF-16 LE BOM(FF FE)을 포함한 바이너리로 만든다.
+  const csv = content.replace(/^\uFEFF/, '');
+  const bytes = new Uint8Array(2 + (csv.length * 2));
+  bytes[0] = 0xFF;
+  bytes[1] = 0xFE;
+  for (let index = 0; index < csv.length; index += 1) {
+    const value = csv.charCodeAt(index);
+    bytes[2 + (index * 2)] = value & 0xFF;
+    bytes[3 + (index * 2)] = value >> 8;
+  }
+  return new Blob([bytes], { type: 'application/octet-stream' });
+}
+
 async function postSlackCsv(run, content, slack) {
   if (!slack.enabled || !slack.token || !slack.channel) return;
-  const file = new Blob([content], { type: 'text/csv;charset=utf-8' });
+  const file = slackCsvFile(content);
   const authorization = { Authorization: `Bearer ${slack.token}` };
 
   const postSlackForm = async (url, values) => {
@@ -490,7 +505,7 @@ async function postSlackCsv(run, content, slack) {
 
   const uploadResponse = await fetch(requestData.upload_url, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/csv;charset=utf-8' },
+    headers: { 'Content-Type': 'application/octet-stream' },
     body: file
   });
   if (!uploadResponse.ok) throw new Error(`Slack 결과 파일 전송 오류: ${uploadResponse.status}`);
@@ -683,7 +698,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       return {
         success: true,
         settings: {
-          _version: '0.3.6',
+          _version: '0.3.7',
           ...saved,
           urls: urlsToList(saved.urls),
           excludedProductUrls: urlsToList(saved.excludedProductUrls)
