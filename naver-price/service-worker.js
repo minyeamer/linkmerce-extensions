@@ -1,6 +1,7 @@
 importScripts('vendor-bcrypt.js');
 
-const CSV_HEADER = ['상품명', '상품 주소', '정상가', '할인가', '최대 할인가', '이미지 주소', '정상가(이미지)', '할인가(이미지)', '최대 할인가(이미지)'];
+const RESULT_HEADER = ['상품명', '상품 주소', '정상가', '할인가', '최대 할인가', '이미지 주소', '정상가(이미지)', '할인가(이미지)', '최대 할인가(이미지)'];
+const XLSX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const DEFAULTS = {
   urls: '', excludedProductUrls: '', scheduleConfig: { enabled: false, time: '09:00' },
   smartstoreApiConfig: { clientId: '', clientSecret: '' },
@@ -9,11 +10,14 @@ const DEFAULTS = {
 };
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+function resultFilename(now = new Date()) {
+  const pad = value => String(value).padStart(2, '0');
+  return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.xlsx`;
+}
 const cleanPrice = value => {
   const digits = String(value ?? '').replace(/[^0-9]/g, '');
   return digits ? Number(digits) : null;
 };
-const csv = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
 function productNo(url) {
   try {
     return new URL(url).pathname.match(/\/products\/(\d+)/)?.[1] || null;
@@ -452,39 +456,153 @@ async function postSlack(row, slack) {
   await postSlackText(slackAlertText(row), slack, row.imageUrl);
 }
 
-function csvText(run) {
-  const price = value => value == null ? '' : String(value);
-  const lines = [CSV_HEADER.map(csv).join(',')].concat(run.rows.map(row => [
-    csv(row.title), csv(row.url), price(row.salesPrice), price(row.discountedPrice),
-    price(row.totalPayAmount), csv(row.imageUrl), price(row.imageSalesPrice),
-    price(row.imageDiscountedPrice), price(row.imageTotalPayAmount)
-  ].join(',')));
-  return '\uFEFF' + lines.join('\r\n');
+const xml = value => String(value ?? '').replace(/[&<>"']/g, character => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;'
+}[character]));
+const utf8 = value => new TextEncoder().encode(value);
+
+function columnName(index) {
+  let value = index + 1;
+  let name = '';
+  while (value) {
+    name = String.fromCharCode(65 + ((value - 1) % 26)) + name;
+    value = Math.floor((value - 1) / 26);
+  }
+  return name;
 }
 
-async function writeCsv(run, content) {
-  const dataUrl = `data:text/csv;charset=utf-8,${encodeURIComponent(content)}`;
+function crc32(bytes) {
+  let crc = 0xFFFFFFFF;
+  for (const byte of bytes) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (0xEDB88320 & -(crc & 1));
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function uint16(bytes, offset, value) {
+  bytes[offset] = value & 0xFF;
+  bytes[offset + 1] = (value >>> 8) & 0xFF;
+}
+
+function uint32(bytes, offset, value) {
+  bytes[offset] = value & 0xFF;
+  bytes[offset + 1] = (value >>> 8) & 0xFF;
+  bytes[offset + 2] = (value >>> 16) & 0xFF;
+  bytes[offset + 3] = (value >>> 24) & 0xFF;
+}
+
+function joinBytes(chunks) {
+  const bytes = new Uint8Array(chunks.reduce((size, chunk) => size + chunk.length, 0));
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return bytes;
+}
+
+function zipStore(files) {
+  const entries = files.map(({ name, content }) => ({ name: utf8(name), content: utf8(content) }));
+  const localFiles = [];
+  const centralFiles = [];
+  let offset = 0;
+  for (const entry of entries) {
+    const crc = crc32(entry.content);
+    const local = new Uint8Array(30 + entry.name.length + entry.content.length);
+    uint32(local, 0, 0x04034B50);
+    uint16(local, 4, 20);
+    uint16(local, 8, 0);
+    uint32(local, 14, crc);
+    uint32(local, 18, entry.content.length);
+    uint32(local, 22, entry.content.length);
+    uint16(local, 26, entry.name.length);
+    local.set(entry.name, 30);
+    local.set(entry.content, 30 + entry.name.length);
+    localFiles.push(local);
+
+    const central = new Uint8Array(46 + entry.name.length);
+    uint32(central, 0, 0x02014B50);
+    uint16(central, 4, 20);
+    uint16(central, 6, 20);
+    uint32(central, 16, crc);
+    uint32(central, 20, entry.content.length);
+    uint32(central, 24, entry.content.length);
+    uint16(central, 28, entry.name.length);
+    uint32(central, 42, offset);
+    central.set(entry.name, 46);
+    centralFiles.push(central);
+    offset += local.length;
+  }
+  const centralSize = centralFiles.reduce((size, file) => size + file.length, 0);
+  const end = new Uint8Array(22);
+  uint32(end, 0, 0x06054B50);
+  uint16(end, 8, entries.length);
+  uint16(end, 10, entries.length);
+  uint32(end, 12, centralSize);
+  uint32(end, 16, offset);
+  return joinBytes([...localFiles, ...centralFiles, end]);
+}
+
+function xlsxBytes(run) {
+  const cell = (reference, value, numeric = false, style = 0) => {
+    if (value == null || value === '') return '';
+    const styleAttribute = style ? ` s="${style}"` : '';
+    if (numeric && Number.isFinite(Number(value))) return `<c r="${reference}"${styleAttribute} t="n"><v>${Number(value)}</v></c>`;
+    return `<c r="${reference}" t="inlineStr"${style ? ` s="${style}"` : ''}><is><t>${xml(value)}</t></is></c>`;
+  };
+  const priceColumns = new Set([2, 3, 4, 6, 7, 8]);
+  const urlColumns = new Set([1, 5]);
+  const hyperlinks = [];
+  const rowXml = (rowNumber, values, header = false) => `<row r="${rowNumber}">${values.map((value, index) => {
+    const reference = `${columnName(index)}${rowNumber}`;
+    if (header) return cell(reference, value, false, 1);
+    if (urlColumns.has(index) && /^https:\/\//.test(String(value || ''))) {
+      hyperlinks.push({ reference, url: String(value) });
+      return cell(reference, value, false, 3);
+    }
+    return cell(reference, value, priceColumns.has(index), priceColumns.has(index) ? 2 : 0);
+  }).join('')}</row>`;
+  const rows = [rowXml(1, RESULT_HEADER, true), ...run.rows.map((row, index) => rowXml(index + 2, [
+    row.title, row.url, row.salesPrice, row.discountedPrice, row.totalPayAmount,
+    row.imageUrl, row.imageSalesPrice, row.imageDiscountedPrice, row.imageTotalPayAmount
+  ]))].join('');
+  const lastRow = Math.max(1, run.rows.length + 1);
+  const hyperlinkXml = hyperlinks.length
+    ? `<hyperlinks>${hyperlinks.map((link, index) => `<hyperlink ref="${link.reference}" r:id="rId${index + 1}"/>`).join('')}</hyperlinks>`
+    : '';
+  const worksheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="A1:I${lastRow}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/><cols><col min="1" max="1" width="41.38" customWidth="1"/><col min="2" max="2" width="13.25" customWidth="1"/><col min="3" max="3" width="8.75" customWidth="1"/><col min="4" max="4" width="8.75" customWidth="1"/><col min="5" max="5" width="13.25" customWidth="1"/><col min="6" max="6" width="13.25" customWidth="1"/><col min="7" max="7" width="16" customWidth="1"/><col min="8" max="8" width="16" customWidth="1"/><col min="9" max="9" width="19.5" customWidth="1"/></cols><sheetData>${rows}</sheetData><autoFilter ref="A1:I${lastRow}"/>${hyperlinkXml}</worksheet>`;
+  const files = [
+    { name: '[Content_Types].xml', content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>' },
+    { name: '_rels/.rels', content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
+    { name: 'xl/workbook.xml', content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="가격 검증" sheetId="1" r:id="rId1"/></sheets></workbook>' },
+    { name: 'xl/_rels/workbook.xml.rels', content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },
+    { name: 'xl/styles.xml', content: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="#\,##0"/></numFmts><fonts count="3"><font><sz val="11"/><name val="Malgun Gothic"/></font><font><b/><sz val="11"/><name val="Malgun Gothic"/></font><font><u/><color rgb="FF0563C1"/><sz val="11"/><name val="Malgun Gothic"/></font></fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="4"><xf fontId="0" fillId="0" borderId="0" xfId="0"/><xf fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/><xf fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/></cellXfs></styleSheet>' },
+    { name: 'xl/worksheets/sheet1.xml', content: worksheet }
+  ];
+  if (hyperlinks.length) files.push({
+    name: 'xl/worksheets/_rels/sheet1.xml.rels',
+    content: `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${hyperlinks.map((link, index) => `<Relationship Id="rId${index + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink" Target="${xml(link.url)}" TargetMode="External"/>`).join('')}</Relationships>`
+  });
+  return zipStore(files);
+}
+
+function bytesToBase64(bytes) {
+  const chunks = [];
+  for (let offset = 0; offset < bytes.length; offset += 0x8000) {
+    chunks.push(String.fromCharCode(...bytes.subarray(offset, offset + 0x8000)));
+  }
+  return btoa(chunks.join(''));
+}
+
+async function writeResultFile(run, bytes) {
+  const dataUrl = `data:${XLSX_CONTENT_TYPE};base64,${bytesToBase64(bytes)}`;
   await chrome.downloads.download({ url: dataUrl, filename: run.filename, conflictAction: 'uniquify', saveAs: false });
 }
 
-function slackCsvFile(content) {
-  // Slack은 업로드된 UTF-8 CSV의 BOM을 제거한다. Excel이 인코딩을 자동 감지할 수
-  // 있도록 Slack 전송본만 UTF-16 LE BOM(FF FE)을 포함한 바이너리로 만든다.
-  const csv = content.replace(/^\uFEFF/, '');
-  const bytes = new Uint8Array(2 + (csv.length * 2));
-  bytes[0] = 0xFF;
-  bytes[1] = 0xFE;
-  for (let index = 0; index < csv.length; index += 1) {
-    const value = csv.charCodeAt(index);
-    bytes[2 + (index * 2)] = value & 0xFF;
-    bytes[3 + (index * 2)] = value >> 8;
-  }
-  return new Blob([bytes], { type: 'application/octet-stream' });
-}
-
-async function postSlackCsv(run, content, slack) {
+async function postSlackResultFile(run, bytes, slack) {
   if (!slack.enabled || !slack.token || !slack.channel) return;
-  const file = slackCsvFile(content);
+  const file = new Blob([bytes], { type: XLSX_CONTENT_TYPE });
   const authorization = { Authorization: `Bearer ${slack.token}` };
 
   const postSlackForm = async (url, values) => {
@@ -597,7 +715,7 @@ async function validateOne(target, cfg, position, total) {
       });
     } catch (error) {
       // One malformed or unsupported image must not prevent later price images
-      // or the product's CSV row from being collected.
+      // or the product's result row from being collected.
       row.imageErrors.push({ imageUrl: images[index], error: error.message });
       continue;
     }
@@ -622,10 +740,8 @@ async function validateOne(target, cfg, position, total) {
 async function runValidation(reason = 'manual') {
   const cfg = await settings(), inputUrls = urlsToList(cfg.urls);
   if (!inputUrls.length) throw new Error('설정에 상품 상세 URL 또는 판매처 URL을 한 개 이상 입력해 주세요.');
-  const now = new Date(), pad = value => String(value).padStart(2, '0');
-  const filename = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}.csv`;
-  const run = { filename, rows: [] };
-  const status = { running: true, reason, total: 0, done: 0, current: 0, currentUrl: '', currentImage: 0, imageTotal: 0, stage: '수집 대상 준비', filename, errors: [] };
+  const run = { filename: '', rows: [] };
+  const status = { running: true, reason, total: 0, done: 0, current: 0, currentUrl: '', currentImage: 0, imageTotal: 0, stage: '수집 대상 준비', errors: [] };
   await setStatus(status);
   const targets = await collectValidationTargets(inputUrls, cfg.excludedProductUrls, status);
   if (!targets.length) throw new Error('검증할 상품을 찾지 못했습니다. 판매처 URL과 로그인 상태를 확인해 주세요.');
@@ -650,13 +766,15 @@ async function runValidation(reason = 'manual') {
     await updateStatus({ done: status.done, current: index + 1 });
   }
   try {
-    await updateStatus({ stage: 'CSV 파일 저장' });
-    const content = csvText(run);
-    await writeCsv(run, content);
+    run.filename = resultFilename();
+    status.filename = run.filename;
+    await updateStatus({ stage: '결과 파일 저장', filename: run.filename });
+    const file = xlsxBytes(run);
+    await writeResultFile(run, file);
     if (cfg.slackConfig?.enabled && cfg.slackConfig.token && cfg.slackConfig.channel) {
       try {
         await updateStatus({ stage: 'Slack 결과 파일 전송' });
-        await postSlackCsv(run, content, cfg.slackConfig);
+        await postSlackResultFile(run, file, cfg.slackConfig);
       } catch (error) {
         status.slackFileError = error.message;
         await updateStatus({ stage: 'Slack 결과 파일 전송 실패', slackFileError: error.message });
@@ -664,7 +782,7 @@ async function runValidation(reason = 'manual') {
     }
     await setStatus({ ...status, running: false, done: targets.length, total: targets.length, stage: '검증 완료', finishedAt: new Date().toISOString() });
   } catch (error) {
-    await setStatus({ ...status, running: false, done: targets.length, total: targets.length, stage: 'CSV 저장 실패', error: error.message, finishedAt: new Date().toISOString() });
+    await setStatus({ ...status, running: false, done: targets.length, total: targets.length, stage: '결과 파일 저장 실패', error: error.message, finishedAt: new Date().toISOString() });
   }
 }
 
@@ -702,7 +820,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       return {
         success: true,
         settings: {
-          _version: '0.3.8',
+          _version: '0.4.0',
           ...saved,
           urls: urlsToList(saved.urls),
           excludedProductUrls: urlsToList(saved.excludedProductUrls)
