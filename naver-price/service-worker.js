@@ -5,7 +5,7 @@ const DEFAULTS = {
   urls: '', excludedProductUrls: '', scheduleConfig: { enabled: false, time: '09:00' },
   smartstoreApiConfig: { clientId: '', clientSecret: '' },
   visionAiApiConfig: { provider: 'google', apiKey: '', model: 'gemini-3.1-flash-lite' },
-  slackConfig: { enabled: false, token: '', channel: '' }
+  slackConfig: { enabled: false, token: '', channel: '', actionAlertsOnly: false }
 };
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -445,6 +445,10 @@ async function postSlackText(text, slack, imageUrl = null) {
 
 async function postSlack(row, slack) {
   if (!slack.enabled || !slack.token || !slack.channel) return;
+  const requiresAction = row.imageTotalPayAmount != null
+    && row.totalPayAmount != null
+    && row.imageTotalPayAmount < row.totalPayAmount;
+  if (!requiresAction && slack.actionAlertsOnly) return;
   await postSlackText(slackAlertText(row), slack, row.imageUrl);
 }
 
@@ -698,7 +702,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       return {
         success: true,
         settings: {
-          _version: '0.3.7',
+          _version: '0.3.8',
           ...saved,
           urls: urlsToList(saved.urls),
           excludedProductUrls: urlsToList(saved.excludedProductUrls)

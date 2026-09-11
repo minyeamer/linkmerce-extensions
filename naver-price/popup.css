@@ -17,6 +17,7 @@ textarea,input,select{width:100%;border:1px solid #ccd3d8;border-radius:5px;padd
 .switch span{line-height:14px}
 section>.control-row+input{margin-top:7px}
 section>input+input{margin-top:7px}
+.slack-alert-filter{margin-top:12px}
 input[type=time]{width:120px}
 .buttons{display:flex;gap:7px;margin-top:8px}
 .top-actions{margin:0 0 10px}

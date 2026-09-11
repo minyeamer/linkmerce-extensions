@@ -1,7 +1,7 @@
 const $ = id => document.getElementById(id);
 const ids = [
   'urls', 'excludedProductUrls', 'smartstoreClientId', 'smartstoreClientSecret', 'visionAiProvider', 'visionAiApiKey', 'visionAiModel',
-  'slackEnabled', 'slackToken', 'slackChannel', 'scheduleEnabled', 'scheduleTime'
+  'slackEnabled', 'slackToken', 'slackChannel', 'slackActionAlertsOnly', 'scheduleEnabled', 'scheduleTime'
 ];
 
 const defaultModel = provider => provider === 'google' ? 'gemini-3.1-flash-lite' : 'gpt-4o-mini';
@@ -28,7 +28,8 @@ function values() {
     slackConfig: {
       enabled: $('slackEnabled').checked,
       token: $('slackToken').value.trim(),
-      channel: $('slackChannel').value.trim()
+      channel: $('slackChannel').value.trim(),
+      actionAlertsOnly: $('slackActionAlertsOnly').checked
     },
     scheduleConfig: { enabled: $('scheduleEnabled').checked, time: $('scheduleTime').value || '09:00' }
   };
@@ -51,6 +52,7 @@ function fill(settings) {
   $('slackEnabled').checked = !!settings.slackConfig?.enabled;
   $('slackToken').value = settings.slackConfig?.token || '';
   $('slackChannel').value = settings.slackConfig?.channel || '';
+  $('slackActionAlertsOnly').checked = !!settings.slackConfig?.actionAlertsOnly;
   $('scheduleEnabled').checked = !!settings.scheduleConfig?.enabled;
   $('scheduleTime').value = settings.scheduleConfig?.time || '09:00';
 }
