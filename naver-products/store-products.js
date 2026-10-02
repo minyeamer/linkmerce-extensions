@@ -1,5 +1,5 @@
-async function readStoreProductsTab(tabId, storeUrl, clickNext = false) {
-  const message = { action: 'inspectStoreProductsPage', storeUrl, clickNext };
+async function readStoreProductsTab(tabId, storeUrl, apiPage = null) {
+  const message = { action: 'inspectStoreProductsPage', storeUrl, apiPage };
   try {
     return await chrome.tabs.sendMessage(tabId, message);
   } catch (_) {
@@ -10,54 +10,77 @@ async function readStoreProductsTab(tabId, storeUrl, clickNext = false) {
   }
 }
 
-async function waitForStoreProductsPage(tabId, storeUrl, previousPage = null) {
-  const deadline = Date.now() + 20000;
+async function readStoreProductsApi(tabId, storeUrl, pageNumber) {
+  const deadline = Date.now() + 30000;
   while (Date.now() < deadline) {
     if ((await chrome.storage.local.get('stopRequested')).stopRequested) return null;
-    let page;
-    try {
-      page = await readStoreProductsTab(tabId, storeUrl);
-    } catch (_) {
-      // Navigation briefly removes the previous document's message listener.
-      await sleep(500);
-      continue;
-    }
+    const dom = await readStoreProductsTab(tabId, storeUrl, pageNumber);
+    if (dom?.error) throw new Error(dom.error);
+    const results = await chrome.scripting.executeScript({ target: { tabId }, world: 'MAIN', files: ['store-products-api.js'] });
+    const page = results?.[0]?.result;
     if (page?.error) throw new Error(page.error);
-    if (page?.ready) {
-      const changed = !previousPage || (page.urls.join('\n') !== previousPage.urls.join('\n')
-        && (previousPage.currentPage == null || page.currentPage > previousPage.currentPage));
-      if (changed) return page;
-    }
+    if (page?.ready) return page;
     await sleep(500);
   }
-  throw new Error(previousPage ? '다음 상품 목록 페이지로 이동하지 못했습니다.' : '판매처 상품 목록을 읽는 시간이 초과되었습니다.');
+  throw new Error('상품 목록 API 요청 정보 로딩 시간이 초과되었습니다.');
 }
 
 async function collectStoreProductUrls(storeUrl, onPage) {
   const tab = await chrome.tabs.create({ url: 'about:blank', active: false });
+  const urls = new Set();
+  let pageNumber = 1;
+  let expectedTotal = null;
   try {
-    const load = waitForTabLoad(tab.id, 15000);
-    await chrome.tabs.update(tab.id, { url: `${storeUrl}/category/ALL?st=RECENT&dt=IMAGE&page=1&size=80` });
-    await load;
-    let page = await waitForStoreProductsPage(tab.id, storeUrl);
-    const urls = new Set();
     const seenPages = new Set();
-    let pageNumber = 0;
-    while (page) {
+    const listUrl = `${storeUrl}/category/ALL?st=RECENT&dt=IMAGE&page=1&size=80`;
+    while (true) {
       if ((await chrome.storage.local.get('stopRequested')).stopRequested) return [];
-      const fingerprint = page.urls.join('\n');
-      if (seenPages.has(fingerprint)) throw new Error('상품 목록 페이지가 반복되어 수집을 중단했습니다.');
+      let page;
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        if ((await chrome.storage.local.get('stopRequested')).stopRequested) return [];
+        await onPage(pageNumber, urls.size, attempt === 1 ? '' : `재시도 ${attempt}/4`);
+        try {
+          if (pageNumber === 1 || attempt > 1) {
+            // On retry, reload page 1 to renew page headers after proxy changes.
+            const loaded = waitForTabLoad(tab.id, 15000);
+            await chrome.tabs.update(tab.id, { url: listUrl });
+            await loaded;
+          }
+          page = await readStoreProductsApi(tab.id, storeUrl, pageNumber);
+          if (!page) return [];
+          if (seenPages.has([...page.urls].sort().join('\n'))) throw new Error('이전 페이지 상품 목록이 반복되었습니다.');
+          if (page.totalCount == null) throw new Error('전체 상품 수 표시를 읽지 못했습니다.');
+          if (expectedTotal != null && page.totalCount !== expectedTotal) throw new Error(`수집 도중 총 상품 수가 변경되었습니다 (${expectedTotal} → ${page.totalCount}). 다시 수집해 주세요.`);
+          break;
+        } catch (error) {
+          if ((await chrome.storage.local.get('stopRequested')).stopRequested) return [];
+          console.warn(`[BG] 목록 ${storeUrl} ${pageNumber}페이지 ${attempt}/4 실패: ${error.message}`);
+          if (attempt === 4) throw error;
+          if (_proxyEnabled && _proxyList.length > 1) await switchToNextProxy();
+          // Retry only the failed page, preserving every previously read page.
+          const delay = Math.min(10000, 1500 * 2 ** (attempt - 1)) + Math.floor(Math.random() * 500);
+          for (let elapsed = 0; elapsed < delay; elapsed += 500) {
+            if ((await chrome.storage.local.get('stopRequested')).stopRequested) return [];
+            await sleep(Math.min(500, delay - elapsed));
+          }
+        }
+      }
+      const fingerprint = [...page.urls].sort().join('\n');
       seenPages.add(fingerprint);
+      expectedTotal = page.totalCount;
       page.urls.forEach(url => urls.add(url));
-      await onPage(++pageNumber, urls.size);
-      if (!page.hasNextPage) return [...urls];
+      await onPage(pageNumber, urls.size);
+      if (!page.hasNextPage) {
+        if (urls.size !== expectedTotal) throw new Error(`상품 주소 누락: 총 ${expectedTotal}개 중 ${urls.size}개 확인`);
+        return [...urls];
+      }
       await sleep(randomDelay());
-      if ((await chrome.storage.local.get('stopRequested')).stopRequested) return [];
-      const next = await readStoreProductsTab(tab.id, storeUrl, true);
-      if (!next?.clicked) throw new Error('상품 목록의 다음 페이지 버튼을 찾지 못했습니다.');
-      page = await waitForStoreProductsPage(tab.id, storeUrl, page);
+      pageNumber++;
     }
-    return [];
+  } catch (error) {
+    error.productUrls = [...urls];
+    error.message = `${pageNumber}페이지 실패 (확인 ${urls.size}/${expectedTotal ?? '?'}개): ${error.message}`;
+    throw error;
   } finally {
     await chrome.tabs.remove(tab.id).catch(() => {});
   }
@@ -77,16 +100,19 @@ async function resolveCollectionUrls(inputs) {
     if ((await chrome.storage.local.get('stopRequested')).stopRequested) break;
     const storeUrl = stores[index].url;
     // The first store uses the already-applied proxy; later stores rotate once.
-    // List page transitions never call the product-level rotation logic.
+    // Successful pages keep the IP; failed pages rotate before retrying.
     if (index > 0 && _proxyEnabled && _proxyList.length > 1) await switchToNextProxy();
     sendProgress(index, stores.length, storeUrl, `판매처 ${index + 1}/${stores.length} · 상품 주소 확인 중`);
     try {
-      const products = await collectStoreProductUrls(storeUrl, async (page, count) => {
-        sendProgress(index, stores.length, storeUrl, `판매처 ${index + 1}/${stores.length} · ${page}페이지 · 상품 주소 ${count}개`);
+      const products = await collectStoreProductUrls(storeUrl, async (page, count, detail = '') => {
+        sendProgress(index, stores.length, storeUrl, `판매처 ${index + 1}/${stores.length} · ${page}페이지 · 상품 주소 ${count}개${detail ? ' · ' + detail : ''}`);
       });
       products.forEach(addProduct);
     } catch (error) {
       if ((await chrome.storage.local.get('stopRequested')).stopRequested) break;
+      // Keep usable pages even if a later page remains unavailable. The store
+      // error row explicitly reports incompleteness instead of claiming success.
+      (error.productUrls || []).forEach(addProduct);
       errors.set(storeUrl, '판매처 상품 목록 수집 실패: ' + error.message);
       urls.set('store:' + storeUrl, storeUrl);
     }

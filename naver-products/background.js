@@ -111,7 +111,8 @@
  *  5. 모바일 API: m.smartstore.naver.com 또는 m.brand.naver.com 엔드포인트
  */
 
-// v3.5.1: 상품 페이지 MAIN world에서 현재 요청 헤더로 API 호출.
+// v3.5.2: 목록 API 페이지별 조회·실패 페이지 재시도·총 개수 검증.
+// 상품 페이지 MAIN world에서 현재 요청 헤더로 API 호출.
 // HTTP 204/빈 응답은 수집 오류로 처리하며 삭제 상품 캐시는 사용하지 않는다.
 'use strict';
 
@@ -824,7 +825,7 @@ async function handleMessage(request) {
       return {
         success: true,
         settings: {
-          _version: '3.5.1',
+          _version: '3.5.2',
           _exportedAt: new Date().toISOString(),
           proxyConfig: stored.proxyConfig || { enabled: false, proxies: [] },
           exportSettings: stored.exportSettings || {},
