@@ -32,7 +32,7 @@
       <!-- URL 입력 -->
       <section class="card">
         <div class="card-header">
-          <span class="card-title">상품 URL 목록</span>
+          <span class="card-title">상품 / 판매처 URL 목록</span>
           <div class="btn-group">
             <button id="loadFileBtn" class="btn-link">📂 파일 로드</button>
             <button id="pasteBtn" class="btn-link">📋 붙여넣기</button>
@@ -49,7 +49,7 @@
         <textarea
           id="urlInput"
           class="textarea"
-          placeholder="https://smartstore.naver.com/store/products/123456&#10;https://brand.naver.com/brand/products/789012&#10;&#10;또는 위의 📂 파일 로드로 .txt 파일 불러오기"
+          placeholder="https://brand.naver.com/chundamon&#10;https://smartstore.naver.com/store/products/123456&#10;&#10;판매처 주소는 모든 페이지의 상품을 수집합니다.&#10;또는 위의 📂 파일 로드로 .txt 파일 불러오기"
           rows="7"
           spellcheck="false"
         ></textarea>
@@ -340,6 +340,7 @@
     <div id="statusMsg" class="status-msg" style="display:none"></div>
 
   </div>
+  <script src="collection-inputs.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

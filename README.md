@@ -9,7 +9,7 @@
 | [`google-search/`](google-search/) | 구글 검색 자동화 | 여러 키워드를 순차 검색하여 결과(query, rank, title, URL, snippet)를 CSV / JSON으로 자동 수집. CAPTCHA 대기 및 이어서 수집 지원. | v0.3.1 |
 | [`naver-cookies/`](naver-cookies/) | 네이버 쿠키 업데이트 | 네이버 세션 쿠키를 주기적으로 추출하여 Slack 채널에 텍스트 파일로 업로드. Linux 서버(Airflow)에서 네이버 인증이 필요할 때 사용. | v0.2.3 |
 | [`naver-price/`](naver-price/) | 네이버 가격 검증 | 로그인된 상품 페이지의 실제 가격과 상세페이지 이미지 가격을 비교하고, 불일치 시 Slack으로 알림. | v0.3.3 |
-| [`naver-products/`](naver-products/) | 네이버 상품 ETL | 네이버 스마트스토어 / 브랜드스토어 상품 URL을 대량 입력하여 가격, 재고, 리뷰, 옵션 데이터를 CSV / JSON으로 자동 수집. | v3.4.8 |
+| [`naver-products/`](naver-products/) | 네이버 상품 ETL | 상품·판매처 URL에서 가격, 재고, 리뷰, 옵션 데이터를 CSV / JSON으로 수집. 판매처는 마지막 페이지까지 상품 주소를 자동 탐색. | v3.5.1 |
 
 ## 설치 (개발 버전)
 

@@ -111,7 +111,11 @@
  *  5. 모바일 API: m.smartstore.naver.com 또는 m.brand.naver.com 엔드포인트
  */
 
+// v3.5.1: 상품 페이지 MAIN world에서 현재 요청 헤더로 API 호출.
+// HTTP 204/빈 응답은 수집 오류로 처리하며 삭제 상품 캐시는 사용하지 않는다.
 'use strict';
+
+importScripts('collection-inputs.js', 'store-products.js', 'product-fetch.js');
 
 // SpecialStatusError
 // ⚠️ class는 hoisting이 안 되므로 반드시 파일 최상단에 위치해야 함
@@ -155,12 +159,6 @@ let _channelCache = null;
 // 런타임 인메모리 캐시: storeSlug → { channelUid, channelId, mallSeq, channelName }
 // (수집 세션 내에서 같은 storeSlug 재요청 방지)
 let _channelInfoCache = {};
-
-// 삭제 상품 캐시: productId(string) → true
-// 같은 urlSource 반복 수집 시 삭제 확정된 상품은 HTTP 요청 없이 즉시 deleted 처리
-// urlSource가 바뀌면 초기화 (다른 파일로 교체 또는 수동 입력)
-let _deletedProductIds = new Set();
-let _lastUrlSource = null;
 
 /**
  * channels.json 데이터를 로드해 반환한다. Service Worker 수명 동안 한 번만 읽는다.
@@ -429,19 +427,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
  * @param {string} urlSource - URL 원본 식별자 (파일명 또는 'manual')
  * @returns {Promise<{success: boolean, data: {products: Object[], options: Object[], supplements: Object[]}}>} 수집 결과
  */
-async function runCollection(urls, urlSource) {
-  const emptyResult = { products: [], options: [], supplements: [] };
-  await chrome.storage.local.set({ collectionResults: emptyResult, isRunning: true, stopRequested: false, collectionStartTime: Date.now() });
-
-  // 삭제 상품 캐시: urlSource가 변경됐으면 초기화 (다른 파일 or 수동 입력으로 교체)
-  const src = urlSource || 'manual';
-  if (src !== _lastUrlSource) {
-    _deletedProductIds = new Set();
-    _lastUrlSource = src;
-    console.log('[BG] 삭제 캐시 초기화 (소스 변경: ' + src + ')');
-  } else if (_deletedProductIds.size > 0) {
-    console.log('[BG] 삭제 캐시 유지 (' + _deletedProductIds.size + '개, 소스: ' + src + ')');
+let _collectionActive = false;
+async function runCollection(inputs, urlSource) {
+  if (_collectionActive) throw new Error('이미 수집 중입니다. 현재 수집이 종료된 뒤 다시 시작해 주세요.');
+  _collectionActive = true;
+  try {
+    await chrome.storage.local.set({
+      collectionResults: { products: [], options: [], supplements: [] },
+      isRunning: true, stopRequested: false, collectionStartTime: Date.now(),
+      collectionProgress: { current: 0, total: 0, currentUrl: '', detailText: '수집 대상 확인 중' }
+    });
+    await loadProxyConfig();
+    await loadDelayConfig();
+    await applyCurrentProxy();
+    const { urls, errors } = await resolveCollectionUrls(inputs);
+    return await runProductCollection(urls, urlSource, errors);
+  } finally {
+    // Keep the running flag until discovery, collection and exports finish.
+    try {
+      await chrome.storage.local.set({ isRunning: false });
+      if (_proxyEnabled) {
+        await chrome.proxy.settings.set({ value: { mode: 'system' }, scope: 'regular' });
+      }
+    } finally {
+      _collectionActive = false;
+    }
   }
+}
+
+async function runProductCollection(urls, urlSource, discoveryErrors = new Map()) {
+  sendProgress(0, urls.length, '', '상품 정보 수집 중');
 
   // 수집 시작 시 현재 설정을 한 번에 요약 출력
   const { exportSettings = {}, scheduleConfig = {}, slackConfig = {} } = await chrome.storage.local.get(['exportSettings', 'scheduleConfig', 'slackConfig']);
@@ -491,31 +506,10 @@ async function runCollection(urls, urlSource) {
       const url = task.url;
       sendProgress(completed, urls.length, url);
 
-      if (!isValidNaverUrl(url)) {
-        results[task.index] = { product: makeError(url, '유효하지 않은 네이버 상품 URL'), options: [], supplements: [] };
+      if (discoveryErrors.has(url) || !isValidNaverUrl(url)) {
+        results[task.index] = { product: makeError(url, discoveryErrors.get(url) || '유효하지 않은 네이버 상품 URL'), options: [], supplements: [] };
         completed++;
         await chrome.storage.local.set({ collectionResults: flattenResults() });
-        continue;
-      }
-
-      // 삭제 캐시 확인: 이미 삭제 확정된 상품코드면 HTTP 요청 없이 즉시 처리
-      const cachedProductId = extractProductNoFromUrl(url);
-      if (cachedProductId && _deletedProductIds.has(cachedProductId)) {
-        console.log('[BG] 삭제 캐시 히트 → 즉시 deleted: ' + url);
-        results[task.index] = {
-          product: {
-            productId: cachedProductId,
-            productNo: cachedProductId,
-            productUrl: url,
-            status: 'deleted',
-            timestamp: new Date().toISOString()
-          },
-          options: [],
-          supplements: []
-        };
-        completed++;
-        await chrome.storage.local.set({ collectionResults: flattenResults() });
-        if (queue.length > 0) await sleep(50);
         continue;
       }
 
@@ -563,10 +557,6 @@ async function runCollection(urls, urlSource) {
             options: [],
             supplements: []
           };
-          // 삭제 확정된 상품코드를 캐시에 저장
-          if (err.specialStatus === 'deleted' && pid) {
-            _deletedProductIds.add(pid);
-          }
           completed++;
           await chrome.storage.local.set({ collectionResults: flattenResults() });
         } else {
@@ -610,13 +600,7 @@ async function runCollection(urls, urlSource) {
     await chrome.storage.local.set({ collectionResults: flattenResults() });
   }
 
-  await chrome.storage.local.set({ isRunning: false });
   sendProgress(completed, urls.length, '');
-
-  // 프록시 비활성화: 수집 완료 후 시스템 설정으로 복원
-  if (_proxyEnabled) {
-    await chrome.proxy.settings.set({ value: { mode: 'system' }, scope: 'regular' });
-  }
 
   const finalResults = flattenResults();
 
@@ -665,7 +649,8 @@ async function runCollection(urls, urlSource) {
     console.warn('[BG] Slack 알림 실패: ' + slackErr.message);
   }
 
-  return { success: true, data: finalResults };
+  const { stopRequested } = await chrome.storage.local.get('stopRequested');
+  return { success: true, stopped: Boolean(stopRequested), data: finalResults };
 }
 
 /**
@@ -677,16 +662,14 @@ async function handleMessage(request) {
   switch (request.action) {
 
     case 'startCollection': {
-      const urls = (request.urls || []).map(u => u.trim()).filter(Boolean);
-      // 프록시 설정 로드 및 적용
-      await loadProxyConfig();
-      await loadDelayConfig();
-      await applyCurrentProxy();
+      if (_collectionActive) throw new Error('이미 수집 중입니다.');
+      const urls = parseCollectionInputs(request.urls || []);
+      if (!urls.length) throw new Error('유효한 상품 또는 판매처 URL을 입력해 주세요.');
       return await runCollection(urls, request.urlSource || 'manual');
     }
 
     case 'stopCollection': {
-      await chrome.storage.local.set({ stopRequested: true, isRunning: false });
+      await chrome.storage.local.set({ stopRequested: true });
       const { collectionResults = { products: [], options: [], supplements: [] } } = await chrome.storage.local.get('collectionResults');
       return { success: true, stopped: true, data: collectionResults };
     }
@@ -841,7 +824,7 @@ async function handleMessage(request) {
       return {
         success: true,
         settings: {
-          _version: '3.4.8',
+          _version: '3.5.1',
           _exportedAt: new Date().toISOString(),
           proxyConfig: stored.proxyConfig || { enabled: false, proxies: [] },
           exportSettings: stored.exportSettings || {},
@@ -895,87 +878,21 @@ async function handleMessage(request) {
 
 /**
  * 네이버 상품 URL로 API를 호출해 상품-재고-리뷰 데이터를 추출한다.
- * 채널 정보 획득 → 데스크탑/모바일 API 4단계 폴백 → 결과 반환 순으로 진행한다.
+ * 상품 페이지 로딩 → 페이지의 현재 요청 헤더로 API 호출 → 결과 반환 순으로 진행한다.
  * @param {string} productUrl - 네이버 상품 페이지 URL
  * @returns {Promise<{product: Object, options: Object[], supplements: Object[]}>} 추출 결과
  */
 async function extractProduct(productUrl) {
   try {
-    const parsed = parseNaverUrl(productUrl);
-    const storeType = parsed.storeType;
-    const storeSlug = parsed.storeSlug;
-    const productId = parsed.productId;
+    parseNaverUrl(productUrl);
 
-    // Step 1: 채널 정보 획득 (channelUid + mallSeq + channelId)
-    const uaInfo = await getUAInfo();
-    const cookieStr = await getNaverCookieString();
-
-    const channelInfo = await getChannelInfo(storeType, storeSlug, uaInfo, cookieStr);
-    if (!channelInfo || !channelInfo.channelUid) throw new Error('channelUid 획득 실패');
-
-    const channelUid = channelInfo.channelUid;
-    const cacheChannelId = channelInfo.channelId || null;
-    const cacheMallSeq = channelInfo.mallSeq != null ? channelInfo.mallSeq : null;
-
-    await sleep(500);
-
-    let apiData = null;
-    let apiErr = '';
-
-    // 데스크탑 API (원래 storeType)
-    try {
-      apiData = await fetchProductData(storeType, storeSlug, productId, channelUid, uaInfo, false, cookieStr);
-    } catch (e) {
-      apiErr = e.message;
-    }
-
-    // SmartStore → Brand 폴백 (데스크탑)
-    if (!apiData && storeType === 'smartstore') {
-      await sleep(randomDelay());
-      try {
-        apiData = await fetchProductData('brand', storeSlug, productId, channelUid, uaInfo, false, cookieStr);
-      } catch (e) {
-        apiErr = e.message;
-      }
-    }
-
-    // 모바일 API 폴백
-    if (!apiData) {
-      await sleep(randomDelay());
-      try {
-        apiData = await fetchProductData(storeType, storeSlug, productId, channelUid, uaInfo, true, cookieStr);
-      } catch (e) {
-        apiErr = e.message;
-      }
-    }
-
-    // SmartStore → Brand 폴백 (모바일)
-    if (!apiData && storeType === 'smartstore') {
-      await sleep(randomDelay());
-      try {
-        apiData = await fetchProductData('brand', storeSlug, productId, channelUid, uaInfo, true, cookieStr);
-      } catch (e) {
-        apiErr = e.message;
-      }
-    }
-
-    // 삭제된 상품: 4단계 API 전부 실패 시 error 메시지로 판별
-    if (!apiData) {
-      if (apiErr.includes('204') || apiErr.includes('빈 응답')) {
-        console.warn('[BG] API 빈 응답(204) → deleted 판정: ' + productUrl);
-        throw new SpecialStatusError('deleted', productUrl, null);
-      }
-      throw new Error('상품 데이터 획득 실패: ' + apiErr);
-    }
-
-    // 채널 정보로 mallNo / channelId 보완
-    if (apiData.mallNo == null && cacheMallSeq != null) {
-      apiData.mallNo = cacheMallSeq;
-    }
-    if (!apiData.channelId && cacheChannelId) {
-      apiData.channelId = cacheChannelId;
-    }
-
+    // Read the live page's channel and request headers in its own context.
+    // An empty API response is a collection error, never proof of deletion.
+    const apiData = await fetchProductDataInPage(productUrl);
+    const channelUid = apiData.channelUid;
+    const cacheChannelId = apiData.channelId || null;
+    const cacheMallSeq = apiData.mallNo ?? null;
+    const channelInfo = { channelName: apiData.channel?.channelName || null };
     // API 응답의 productStatusType으로 특수 상태 감지
     const apiProductStatus = apiData.productStatusType || null;
     const apiSpecialStatus = detectSpecialStatusFromType(apiProductStatus);
@@ -1037,7 +954,7 @@ function isNonCaptchaError(err) {
     msg.includes('Failed to fetch') || // 네트워크 단절
     msg.includes('NetworkError') ||
     msg.includes('타임아웃') ||
-    msg.includes('상품 데이터 획득 실패'); // 4단계 모두 실패
+    msg.includes('상품 데이터 획득 실패'); // 상품 페이지/API 수집 실패
 }
 
 /**
@@ -1692,11 +1609,12 @@ function normalizeDate(dateStr) {
  * @param {number} total - 전체 상품 수
  * @param {string} currentUrl - 현재 처리 중인 URL
  */
-function sendProgress(current, total, currentUrl) {
+function sendProgress(current, total, currentUrl, detailText = '') {
   const progress = {
     current,
     total,
     currentUrl,
+    detailText,
     percent: total > 0 ? Math.round((current / total) * 100) : 0
   };
   chrome.storage.local.set({ collectionProgress: progress }).catch(() => {});
@@ -1895,10 +1813,6 @@ chrome.alarms.onAlarm.addListener(async function(alarm) {
   if (alarm.name !== 'nsp-schedule') return;
 
   try {
-    // 설정 재로드
-    await loadProxyConfig();
-    await loadDelayConfig();
-
     const { scheduleConfig } = await chrome.storage.local.get('scheduleConfig');
     if (!scheduleConfig || !scheduleConfig.enabled) return;
 
@@ -1909,9 +1823,7 @@ chrome.alarms.onAlarm.addListener(async function(alarm) {
       return;
     }
 
-    const urls = defaultFileContent.split('\n')
-      .map(function(l) { return l.trim(); })
-      .filter(function(l) { return /^https:\/\/(smartstore|brand)\.naver\.com\/[^/]+\/products\/\d+/.test(l); });
+    const urls = parseCollectionInputs(defaultFileContent);
 
     if (urls.length === 0) {
       console.warn('[BG] 스케줄: 유효한 URL 없음');
@@ -1925,8 +1837,6 @@ chrome.alarms.onAlarm.addListener(async function(alarm) {
       return;
     }
 
-    // 프록시 적용 후 수집 실행
-    await applyCurrentProxy();
     await runCollection(urls, defaultFileName || 'schedule');
   } catch (e) {
     console.error('[BG] 스케줄 수집 오류: ' + e.message);

@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 현재 진행 상황 즉시 렌더링 (polling 첫 틱 이전에 빈 화면 방지)
     const { collectionProgress } = await chrome.storage.local.get('collectionProgress');
     if (collectionProgress) {
-      updateProgress(collectionProgress.current, collectionProgress.total, collectionProgress.currentUrl);
+      updateProgress(collectionProgress.current, collectionProgress.total, collectionProgress.currentUrl, collectionProgress.detailText);
     }
     startPolling();
   } else if (collectionStartTime) {
@@ -287,19 +287,18 @@ urlInput.addEventListener('input', refreshCount);
  * urlInput의 내용을 파싱해 URL 수를 urlCount 엘리먼트에 갱신한다.
  */
 function refreshCount() {
-  const n = parseUrls(urlInput.value).length;
-  urlCount.textContent = `${n.toLocaleString()}개 URL 인식됨`;
+  const inputs = parseUrls(urlInput.value).map(normalizeCollectionInput);
+  const stores = inputs.filter(input => input.type === 'store').length;
+  urlCount.textContent = `상품 ${inputs.length - stores}개 · 판매처 ${stores}개 인식됨`;
 }
 
 /**
- * 텍스트에서 유효한 네이버 상품 URL만 입후로 실행 보유 배열로 반환한다.
+ * 텍스트에서 유효한 네이버 상품/판매처 URL을 중복 없이 반환한다.
  * @param {string} text - 줄 구분 URL 텍스트
  * @returns {string[]} 유효한 URL 배열
  */
 function parseUrls(text) {
-  return text.split('\n')
-    .map(l => l.trim())
-    .filter(l => /^https:\/\/(smartstore|brand)\.naver\.com\/[^/]+\/products\/\d+/.test(l));
+  return parseCollectionInputs(text);
 }
 
 // 붙여넣기
@@ -326,14 +325,14 @@ startBtn.addEventListener('click', async () => {
 
   const urls = parseUrls(urlInput.value);
   if (urls.length === 0) {
-    showMsg('유효한 네이버 상품 URL을 입력해주세요.\n예) https://smartstore.naver.com/store/products/12345', 'error');
+    showMsg('유효한 상품 또는 판매처 URL을 입력해주세요.\n예) https://brand.naver.com/chundamon', 'error');
     return;
   }
 
   setRunning(true);
   progressSection.style.display = 'block';
   updateProgress(0, urls.length, '');
-  showMsg(`${urls.length.toLocaleString()}개 URL 수집 시작... (상품당 약 2~4초 소요)`, 'info');
+  showMsg(`${urls.length.toLocaleString()}개 입력 주소 확인 중... 판매처는 모든 페이지의 상품 주소를 먼저 수집합니다.`, 'info');
 
   // storage에서 실제 시작 시간 읽기 (background.js가 먼저 set함)
   const { collectionStartTime: st } = await chrome.storage.local.get('collectionStartTime');
@@ -454,7 +453,7 @@ function startPolling() {
       } = await chrome.storage.local.get(['collectionResults', 'isRunning', 'collectionProgress']);
 
       if (collectionProgress) {
-        updateProgress(collectionProgress.current, collectionProgress.total, collectionProgress.currentUrl);
+        updateProgress(collectionProgress.current, collectionProgress.total, collectionProgress.currentUrl, collectionProgress.detailText);
       }
 
       // 수집 결과 실시간 반영
@@ -535,7 +534,7 @@ function updateProxyActiveBadge(pxRes) {
 // background.js에서 progressUpdate 메시지도 여전히 수신 (빠른 업데이트)
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.action === 'progressUpdate') {
-    updateProgress(msg.current, msg.total, msg.currentUrl);
+    updateProgress(msg.current, msg.total, msg.currentUrl, msg.detailText);
   }
 });
 
@@ -567,7 +566,8 @@ function renderResults(data) {
 
     const price = (item.salesPrice > 0 ? item.salesPrice : item.price) || 0;
     const priceStr = price > 0 ? price.toLocaleString() + '원' : '-';
-    const stock = item.stockQuantity >= 0 ? item.stockQuantity.toLocaleString() : '-';
+    const stock = item.stockQuantity != null && item.stockQuantity >= 0
+      ? item.stockQuantity.toLocaleString() : '-';
 
     let tagClass = 'tag-error', tagText = '❌ 실패';
     if (item.status === 'success') { tagClass = 'tag-success'; tagText = '✅ 성공'; }
@@ -604,10 +604,10 @@ function renderResults(data) {
  * @param {number} total - 전체 상품 수
  * @param {string} currentUrl - 현재 처리 중인 URL
  */
-function updateProgress(current, total, currentUrl) {
+function updateProgress(current, total, currentUrl, detailText = '') {
   const pct = total > 0 ? Math.round((current / total) * 100) : 0;
   progressBar.style.width = pct + '%';
-  currentUrlText.textContent = currentUrl || '';
+  currentUrlText.textContent = [detailText, currentUrl].filter(Boolean).join(' · ');
   renderTimerText(current, total);
 }
 
