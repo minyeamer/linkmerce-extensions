@@ -297,7 +297,7 @@ body {
 }
 
 .custom-interval-row input[type="number"] {
-  width: 70px;
+  width: 60px;
   padding: 5px 8px;
   border: 1px solid #ddd;
   border-radius: 6px;
@@ -312,7 +312,7 @@ body {
 }
 
 .custom-interval-row input[type="time"] {
-  width: 110px;
+  width: 130px;
   padding: 5px 8px;
   border: 1px solid #ddd;
   border-radius: 6px;

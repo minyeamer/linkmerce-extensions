@@ -40,8 +40,8 @@ const importConfigInput = $('importConfigInput');
 const configMsg = $('configMsg');
 
 let _slackConfig = { token: '', channel: '', filename: '' };
-let _sendScheduleConfig = { enabled: false, mode: 'interval', intervalMinutes: 1440, baseTime: '00:00', times: [] };
-let _refreshScheduleConfig = { enabled: false, intervalMinutes: 30, baseTime: '00:00' };
+let _sendScheduleConfig = { enabled: false, mode: 'interval', intervalMinutes: 1440, baseTime: '00:00:00', times: [] };
+let _refreshScheduleConfig = { enabled: false, intervalMinutes: 30, baseTime: '00:00:00' };
 
 /**
  * 숫자를 2자리 문자열로 패딩한다.
@@ -53,17 +53,17 @@ function pad(n) { return String(n).padStart(2, '0'); }
 /**
  * 간격(분)과 시작 기준 시각으로 하루치 발화 시각 목록을 생성한다.
  * @param {number} minutes  - 반복 간격 (분)
- * @param {string} baseTime - 시작 기준 시각 (HH:MM 형식)
+ * @param {string} baseTime - 시작 기준 시각 (HH:MM:SS 또는 기존 HH:MM)
  * @returns {string} 발화 시각 목록 문자열 (최대 6개 표시 후 생략 표기)
  */
 function toCronHint(minutes, baseTime) {
   if (!minutes || minutes <= 0) return '';
-  const [bh, bm] = (baseTime || '00:00').split(':').map(Number);
-  const base = bh * 60 + bm;
+  const [bh, bm, bs = 0] = (baseTime || '00:00:00').split(':').map(Number);
+  const base = (bh * 60 + bm) * 60 + bs;
   const occurrences = [];
   for (let off = 0; off < 1440; off += minutes) {
-    const total = (base + off) % 1440;
-    occurrences.push(`${pad(Math.floor(total / 60))}:${pad(total % 60)}`);
+    const total = (base + off * 60) % 86400;
+    occurrences.push(`${pad(Math.floor(total / 3600))}:${pad(Math.floor(total / 60) % 60)}:${pad(total % 60)}`);
   }
   if (occurrences.length <= 8) return occurrences.join('  ');
   return occurrences.slice(0, 6).join('  ') + `  … (${occurrences.length}회/일)`;
@@ -72,14 +72,14 @@ function toCronHint(minutes, baseTime) {
 /** Slack 전송 스케줄의 크론 힌트를 갱신한다. */
 function updateSendIntervalCron() {
   const mins = Number(sendIntervalInput.value) || 0;
-  const base = sendBaseTimeInput.value || '00:00';
+  const base = sendBaseTimeInput.value || '00:00:00';
   sendIntervalCron.textContent = toCronHint(mins, base);
 }
 
 /** 새로고침 스케줄의 크론 힌트를 갱신한다. */
 function updateRefreshIntervalCron() {
   const mins = Number(refreshIntervalInput.value) || 0;
-  const base = refreshBaseTimeInput.value || '00:00';
+  const base = refreshBaseTimeInput.value || '00:00:00';
   refreshIntervalCron.textContent = toCronHint(mins, base);
 }
 
@@ -119,7 +119,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     sendScheduleEnabled.checked = _sendScheduleConfig.enabled;
     applyModeUI(_sendScheduleConfig.mode || 'interval');
     sendIntervalInput.value = _sendScheduleConfig.intervalMinutes || 1440;
-    sendBaseTimeInput.value = _sendScheduleConfig.baseTime || '00:00';
+    sendBaseTimeInput.value = _sendScheduleConfig.baseTime || '00:00:00';
     updateSendPresetBtns(_sendScheduleConfig.intervalMinutes);
     updateSendIntervalCron();
     renderSendTimes();
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     _refreshScheduleConfig = refreshRes.config;
     refreshEnabled.checked = _refreshScheduleConfig.enabled;
     refreshIntervalInput.value = _refreshScheduleConfig.intervalMinutes || 30;
-    refreshBaseTimeInput.value = _refreshScheduleConfig.baseTime || '00:00';
+    refreshBaseTimeInput.value = _refreshScheduleConfig.baseTime || '00:00:00';
     updateRefreshPresetBtns(_refreshScheduleConfig.intervalMinutes);
     updateRefreshIntervalCron();
   }
@@ -194,7 +194,7 @@ sendIntervalInput.addEventListener('change', () => {
 });
 
 sendBaseTimeInput.addEventListener('change', () => {
-  _sendScheduleConfig.baseTime = sendBaseTimeInput.value || '00:00';
+  _sendScheduleConfig.baseTime = sendBaseTimeInput.value || '00:00:00';
   updateSendIntervalCron();
   saveSendScheduleConfig();
 });
@@ -207,7 +207,7 @@ sendScheduleEnabled.addEventListener('change', saveSendScheduleConfig);
  */
 async function saveSendScheduleConfig() {
   _sendScheduleConfig.enabled = sendScheduleEnabled.checked;
-  _sendScheduleConfig.baseTime = sendBaseTimeInput.value || '00:00';
+  _sendScheduleConfig.baseTime = sendBaseTimeInput.value || '00:00:00';
   await chrome.runtime.sendMessage({ action: 'saveSendScheduleConfig', config: _sendScheduleConfig });
   await refreshAlarmDisplay();
 }
@@ -275,7 +275,7 @@ refreshIntervalInput.addEventListener('change', () => {
 });
 
 refreshBaseTimeInput.addEventListener('change', () => {
-  _refreshScheduleConfig.baseTime = refreshBaseTimeInput.value || '00:00';
+  _refreshScheduleConfig.baseTime = refreshBaseTimeInput.value || '00:00:00';
   updateRefreshIntervalCron();
   saveRefreshScheduleConfig();
 });
@@ -288,7 +288,7 @@ refreshEnabled.addEventListener('change', saveRefreshScheduleConfig);
  */
 async function saveRefreshScheduleConfig() {
   _refreshScheduleConfig.enabled = refreshEnabled.checked;
-  _refreshScheduleConfig.baseTime = refreshBaseTimeInput.value || '00:00';
+  _refreshScheduleConfig.baseTime = refreshBaseTimeInput.value || '00:00:00';
   await chrome.runtime.sendMessage({ action: 'saveRefreshScheduleConfig', config: _refreshScheduleConfig });
   await refreshAlarmDisplay();
 }
@@ -431,7 +431,7 @@ importConfigInput.addEventListener('change', async (e) => {
       sendScheduleEnabled.checked = _sendScheduleConfig.enabled;
       applyModeUI(_sendScheduleConfig.mode || 'interval');
       sendIntervalInput.value = _sendScheduleConfig.intervalMinutes || 1440;
-      sendBaseTimeInput.value = _sendScheduleConfig.baseTime || '00:00';
+      sendBaseTimeInput.value = _sendScheduleConfig.baseTime || '00:00:00';
       updateSendPresetBtns(_sendScheduleConfig.intervalMinutes);
       updateSendIntervalCron();
       renderSendTimes();
@@ -440,7 +440,7 @@ importConfigInput.addEventListener('change', async (e) => {
       _refreshScheduleConfig = settings.refreshScheduleConfig;
       refreshEnabled.checked = _refreshScheduleConfig.enabled;
       refreshIntervalInput.value = _refreshScheduleConfig.intervalMinutes || 30;
-      refreshBaseTimeInput.value = _refreshScheduleConfig.baseTime || '00:00';
+      refreshBaseTimeInput.value = _refreshScheduleConfig.baseTime || '00:00:00';
       updateRefreshPresetBtns(_refreshScheduleConfig.intervalMinutes);
       updateRefreshIntervalCron();
     }

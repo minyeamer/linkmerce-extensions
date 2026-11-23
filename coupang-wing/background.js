@@ -9,8 +9,8 @@
  *  - 설정 전체 내보내기 / 불러오기 (getAllSettings / setAllSettings)
  *
  * 스케줄 설정 형식:
- *  - sendScheduleConfig: { enabled, mode: 'interval'|'times', intervalMinutes, baseTime: 'HH:MM', times: ['HH:MM'] }
- *  - refreshScheduleConfig: { enabled, intervalMinutes, baseTime: 'HH:MM' }
+ *  - sendScheduleConfig: { enabled, mode: 'interval'|'times', intervalMinutes, baseTime: 'HH:MM:SS', times: ['HH:MM'] }
+ *  - refreshScheduleConfig: { enabled, intervalMinutes, baseTime: 'HH:MM:SS' }
  */
 
 'use strict';
@@ -225,6 +225,24 @@ async function extractAndSend() {
 }
 
 /**
+ * 기준 시각의 초까지 반영하여 다음 실행 시각을 계산한다.
+ * @param {number} minutes - 반복 간격 (분)
+ * @param {string} baseTime - 기준 시각 (HH:MM:SS 또는 기존 HH:MM)
+ * @param {Date} [now] - 현재 시각
+ * @returns {number} 다음 실행 시각 (밀리초 타임스탬프)
+ */
+function nextIntervalTime(minutes, baseTime, now = new Date()) {
+  const period = minutes * 60_000;
+  if (!baseTime) return now.getTime() + period;
+  const [hours, minutesOfHour, seconds = 0] = baseTime.split(':').map(Number);
+  const base = ((hours * 60 + minutesOfHour) * 60 + seconds) * 1000;
+  const current = ((now.getHours() * 60 + now.getMinutes()) * 60 + now.getSeconds()) * 1000
+    + now.getMilliseconds();
+  const elapsed = (current - base + 86_400_000) % 86_400_000;
+  return now.getTime() + period - elapsed % period;
+}
+
+/**
  * Slack 전송 스케줄 알람을 설정한다.
  * interval 모드에서는 baseTime 기준으로 다음 발화까지의 지연을 계산한다.
  * times 모드에서는 가장 가까운 다음 시각에 one-shot 알람을 설정한다.
@@ -239,20 +257,9 @@ async function scheduleSendAlarm(config) {
     const mins = Number(config.intervalMinutes);
     if (!mins || mins <= 0) return;
 
-    // 기준 시각이 있으면 다음 발화까지의 정확한 지연을 계산
-    let delay = mins;
-    if (config.baseTime) {
-      const [bh, bm] = config.baseTime.split(':').map(Number);
-      const now = new Date();
-      const nowMins = now.getHours() * 60 + now.getMinutes();
-      const baseMins = bh * 60 + bm;
-      const elapsed = (nowMins - baseMins + 1440) % 1440; // 기준 시각 이후 경과 분
-      const sinceLast = elapsed % mins; // 마지막 발화 이후 경과 분
-      delay = sinceLast === 0 ? mins : mins - sinceLast;
-      delay = Math.max(1, delay);
-    }
-
-    chrome.alarms.create(ALARM_SEND, { delayInMinutes: delay, periodInMinutes: mins });
+    const when = nextIntervalTime(mins, config.baseTime);
+    const delay = (when - Date.now()) / 60_000;
+    chrome.alarms.create(ALARM_SEND, { when, periodInMinutes: mins });
     console.log(`[BG] 전송 알람 설정: 매 ${mins}분 (첫 발화까지 ${delay}분)`);
     return;
   }
@@ -283,7 +290,7 @@ async function scheduleSendAlarm(config) {
 }
 
 // 새로고침 스케줄 알람 설정
-// refreshScheduleConfig: { enabled, intervalMinutes, baseTime: 'HH:MM' }
+// refreshScheduleConfig: { enabled, intervalMinutes, baseTime: 'HH:MM:SS' }
 async function scheduleRefreshAlarm(config) {
   await chrome.alarms.clear(ALARM_REFRESH);
   if (!config?.enabled) return;
@@ -291,19 +298,9 @@ async function scheduleRefreshAlarm(config) {
   const mins = Number(config.intervalMinutes);
   if (!mins || mins <= 0) return;
 
-  let delay = mins;
-  if (config.baseTime) {
-    const [bh, bm] = config.baseTime.split(':').map(Number);
-    const now = new Date();
-    const nowMins = now.getHours() * 60 + now.getMinutes();
-    const baseMins = bh * 60 + bm;
-    const elapsed = (nowMins - baseMins + 1440) % 1440;
-    const sinceLast = elapsed % mins;
-    delay = sinceLast === 0 ? mins : mins - sinceLast;
-    delay = Math.max(1, delay);
-  }
-
-  chrome.alarms.create(ALARM_REFRESH, { delayInMinutes: delay, periodInMinutes: mins });
+  const when = nextIntervalTime(mins, config.baseTime);
+  const delay = (when - Date.now()) / 60_000;
+  chrome.alarms.create(ALARM_REFRESH, { when, periodInMinutes: mins });
   console.log(`[BG] 새로고침 알람 설정: 매 ${mins}분 (첫 발화까지 ${delay}분)`);
 }
 
@@ -392,7 +389,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           const { sendScheduleConfig } = await chrome.storage.local.get('sendScheduleConfig');
           sendResponse({
             success: true,
-            config: sendScheduleConfig || { enabled: false, mode: 'interval', intervalMinutes: 1440, baseTime: '00:00', times: [] },
+            config: sendScheduleConfig || { enabled: false, mode: 'interval', intervalMinutes: 1440, baseTime: '00:00:00', times: [] },
           });
           break;
         }
@@ -410,7 +407,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
           const { refreshScheduleConfig } = await chrome.storage.local.get('refreshScheduleConfig');
           sendResponse({
             success: true,
-            config: refreshScheduleConfig || { enabled: false, intervalMinutes: 30, baseTime: '00:00' },
+            config: refreshScheduleConfig || { enabled: false, intervalMinutes: 30, baseTime: '00:00:00' },
           });
           break;
         }
@@ -437,8 +434,8 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
               _version: chrome.runtime.getManifest().version,
               _exportedAt: new Date().toISOString(),
               slackConfig: stored.slackConfig || { token: '', channel: '', filename: '' },
-              sendScheduleConfig: stored.sendScheduleConfig || { enabled: false, mode: 'interval', intervalMinutes: 1440, baseTime: '00:00', times: [] },
-              refreshScheduleConfig: stored.refreshScheduleConfig || { enabled: false, intervalMinutes: 30, baseTime: '00:00' },
+              sendScheduleConfig: stored.sendScheduleConfig || { enabled: false, mode: 'interval', intervalMinutes: 1440, baseTime: '00:00:00', times: [] },
+              refreshScheduleConfig: stored.refreshScheduleConfig || { enabled: false, intervalMinutes: 30, baseTime: '00:00:00' },
             },
           });
           break;
