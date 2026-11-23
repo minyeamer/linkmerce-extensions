@@ -200,7 +200,16 @@ async function readRenderedPage(url) {
     // Login and coupon state can finish updating after document completion.
     // This is only a wait for the rendered DOM, not a network inspection.
     await sleep(3000);
-    return await chrome.tabs.sendMessage(tab.id, { type: 'READ_RENDERED_PRICES' });
+    const deadline = Date.now() + 12000;
+    while (true) {
+      const page = await chrome.tabs.sendMessage(tab.id, { type: 'READ_RENDERED_PRICES' });
+      if (page?.error) throw new Error(page.error);
+      if (page?.salesPrice != null || page?.discountedPrice != null) return page;
+      if (Date.now() >= deadline) {
+        throw new Error('상품 페이지에서 가격을 찾지 못했습니다. 상품 주소와 로그인 상태를 확인해 주세요.');
+      }
+      await sleep(500);
+    }
   } finally {
     await chrome.tabs.remove(tab.id).catch(() => {});
   }
@@ -695,9 +704,13 @@ async function validateOne(target, cfg, position, total) {
     imageUrl: null, imageSalesPrice: null, imageDiscountedPrice: null,
     imageDiscountAmount: null, imageTotalPayAmount: null, imageErrors: []
   };
+  if (row.salesPrice == null && row.discountedPrice == null && row.totalPayAmount == null) {
+    throw new Error('상품 가격을 확인하지 못했습니다. 상품 주소와 로그인 상태를 확인해 주세요.');
+  }
   await updateStatus({
     totalPayAmount: row.totalPayAmount,
-    totalPayAmountSource: fromMallProduct ? '판매처 상품 목록에 표시된 최대 할인가' : '상세페이지에 표시된 최대 할인가'
+    totalPayAmountSource: row.totalPayAmount == null ? ''
+      : fromMallProduct ? '판매처 상품 목록에 표시된 최대 할인가' : '상세페이지에 표시된 최대 할인가'
   });
   if (!cfg.visionAiApiConfig?.apiKey) {
     await updateStatus({ stage: '이미지 가격 검증 건너뜀 (생성형AI API 키 없음)' });

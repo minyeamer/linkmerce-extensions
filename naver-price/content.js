@@ -24,9 +24,15 @@ function extractRenderedPrices() {
   // Naver brand pages commonly append the store name as " : 스토어명".
   const productTitle = title.trim().replace(/\s+:\s+[^:]+$/, '');
   if (!area) {
+    const bodyText = document.body?.innerText || '';
+    const error = /상품이 존재하지 않습니다/.test(bodyText)
+      ? '상품이 존재하지 않습니다. 삭제되었거나 변경된 상품 주소를 확인해 주세요.'
+      : document.querySelector('#captcha_wrap, #rcpt_form, #vcpt_form, input[name="captcha"]')
+        || /보안 확인|자동화된 요청/.test(bodyText)
+        ? '네이버 보안 확인이 필요합니다. Chrome에서 상품 페이지를 확인해 주세요.' : null;
     return {
       title: productTitle, salesPrice: null, discountedPrice: null,
-      discountAmount: null, totalPayAmount: null
+      discountAmount: null, totalPayAmount: null, error
     };
   }
 
