@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "쿠팡 Ads 쿠키 업데이트",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "쿠팡 Ads 탭을 주기적으로 새로고침하고 쿠키를 Slack 채널에 전송합니다",
   "permissions": [
     "cookies",
@@ -17,6 +17,13 @@
   "background": {
     "service_worker": "background.js"
   },
+  "content_scripts": [
+    {
+      "matches": ["https://advertising.coupang.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

@@ -6,7 +6,7 @@
 
 | 폴더 | 이름 | 설명 | 버전 |
 |------|------|------|------|
-| [`coupang-ads/`](coupang-ads/) | 쿠팡 Ads 쿠키 업데이트 | 쿠팡 광고 탭을 주기적으로 새로고침하고 쿠키를 Slack에 전송. | v0.1.0 |
+| [`coupang-ads/`](coupang-ads/) | 쿠팡 Ads 쿠키 업데이트 | 쿠팡 광고 탭을 주기적으로 새로고침하고 쿠키를 Slack에 전송. | v0.2.0 |
 | [`coupang-wing/`](coupang-wing/) | 쿠팡 Wing 쿠키 업데이트 | Wing 탭을 주기적으로 새로고침하고 쿠키를 Slack에 전송. | v0.1.0 |
 | [`google-search/`](google-search/) | 구글 검색 자동화 | 여러 키워드를 순차 검색하여 결과(query, rank, title, URL, snippet)를 CSV / JSON으로 자동 수집. CAPTCHA 대기 및 이어서 수집 지원. | v0.3.1 |
 | [`naver-cookies/`](naver-cookies/) | 네이버 쿠키 업데이트 | 네이버 세션 쿠키를 주기적으로 추출하여 Slack 채널에 텍스트 파일로 업로드. Linux 서버(Airflow)에서 네이버 인증이 필요할 때 사용. | v0.2.3 |
@@ -82,6 +82,7 @@ linkmerce-extensions/
 ├── coupang-ads/            # 쿠팡 Ads 쿠키 업데이트
 │   ├── manifest.json
 │   ├── background.js
+│   ├── content.js
 │   ├── popup.html / popup.css / popup.js
 │   ├── icons/
 │   └── README.md

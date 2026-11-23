@@ -20,6 +20,8 @@ const TARGET_HOST = 'advertising.coupang.com';
 const ALARM_SEND = 'coupang-ads-send';
 const ALARM_REFRESH = 'coupang-ads-refresh';
 
+let pendingTabRefresh = null;
+
 /**
  * 숫자를 2자리 문자열로 패딩한다.
  * @param {number} n - 패딩할 숫자
@@ -68,36 +70,106 @@ async function extractCoupangCookies() {
 }
 
 /**
- * 열린 쿠팡 Ads 탭을 새로고침하고 로딩 완료를 기다립니다. (최대 30초)
+ * 열린 쿠팡 Ads 탭을 새로고침하고 Wing 세션을 통한 로그인을 확인한다.
  * 열린 쿠팡 Ads 탭이 없으면 false를 반환한다.
+ * 동시에 요청된 새로고침은 진행 중인 작업을 공유한다.
  * @returns {Promise<boolean>} 새로고침 성공 여부
  */
 async function refreshCoupangTab() {
+  if (pendingTabRefresh) return pendingTabRefresh;
+  pendingTabRefresh = refreshAndVerifyAdsLogin();
+  try {
+    return await pendingTabRefresh;
+  } finally {
+    pendingTabRefresh = null;
+  }
+}
+
+/**
+ * 대상 탭을 새로고침한 뒤 로그인 상태를 확인한다.
+ * @returns {Promise<boolean>} 대상 탭 존재 및 로그인 확인 여부
+ */
+async function refreshAndVerifyAdsLogin() {
   const tabs = await chrome.tabs.query({ url: [`https://${TARGET_HOST}/*`] });
   if (!tabs.length) return false;
 
   const tab = tabs[0];
+  await reloadAdsTab(tab.id);
+  await ensureAdsLogin(tab.id);
+  return true;
+}
+
+/**
+ * 지정한 탭의 새로고침 완료와 화면 안정화를 기다린다.
+ * @param {number} tabId - 새로고침할 탭 ID
+ * @returns {Promise<void>}
+ */
+async function reloadAdsTab(tabId) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       chrome.tabs.onUpdated.removeListener(listener);
       reject(new Error('탭 새로고침 시간이 초과되었습니다.'));
     }, 30_000);
 
-    function listener(tabId, info) {
-      if (tabId === tab.id && info.status === 'complete') {
+    function listener(updatedTabId, info) {
+      if (updatedTabId === tabId && info.status === 'complete') {
         chrome.tabs.onUpdated.removeListener(listener);
         clearTimeout(timeout);
-        setTimeout(() => resolve(true), 2000);
+        setTimeout(resolve, 2000);
       }
     }
 
     chrome.tabs.onUpdated.addListener(listener);
-    chrome.tabs.reload(tab.id).catch(error => {
+    chrome.tabs.reload(tabId).catch(error => {
       chrome.tabs.onUpdated.removeListener(listener);
       clearTimeout(timeout);
       reject(error);
     });
   });
+}
+
+/**
+ * Wing 로그인은 한 번만 시도하고 Ads 화면으로 돌아올 때까지 확인한다.
+ * Access Denied 화면에서는 로그인이나 재시도를 하지 않는다.
+ * @param {number} tabId - 로그인 상태를 확인할 탭 ID
+ * @returns {Promise<void>}
+ */
+async function ensureAdsLogin(tabId) {
+  const deadline = Date.now() + 30_000;
+  let loginAttempted = false;
+  while (Date.now() < deadline) {
+    const tab = await chrome.tabs.get(tabId);
+    // Wing 인증 리디렉션 중에는 Ads 화면으로 돌아올 때까지 기다린다.
+    if (tab.status === 'complete' && tab.url?.startsWith(`https://${TARGET_HOST}/`)) {
+      let result;
+      try {
+        result = await chrome.tabs.sendMessage(tabId, { action: 'inspectAdsLogin', clickWing: false }, { frameId: 0 });
+      } catch (error) {
+        // 검사 중 리디렉션이 시작된 경우에만 다음 로딩 완료를 기다린다.
+        const current = await chrome.tabs.get(tabId);
+        if (current.status === 'complete' && current.url === tab.url) throw error;
+      }
+      const state = result?.state;
+      if (state === 'ready') return;
+      if (state === 'denied') {
+        throw new Error('Access Denied 또는 로그인 버튼 없는 화면입니다. 로그인 및 전송 없이 다음 새로고침을 기다립니다.');
+      }
+      if (state === 'login' && !loginAttempted) {
+        loginAttempted = true;
+        try {
+          const clicked = await chrome.tabs.sendMessage(tabId, { action: 'inspectAdsLogin', clickWing: true }, { frameId: 0 });
+          if (clicked?.state === 'denied') {
+            throw new Error('Access Denied 또는 로그인 버튼 없는 화면입니다. 다음 새로고침을 기다립니다.');
+          }
+        } catch (error) {
+          const current = await chrome.tabs.get(tabId);
+          if (current.status === 'complete' && current.url === tab.url) throw error;
+        }
+      }
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  throw new Error('쿠팡 Ads 자동 로그인 완료를 확인하지 못했습니다. Wing 로그인 상태를 확인하세요. 다음 새로고침에서 다시 확인합니다.');
 }
 
 /**
@@ -189,7 +261,7 @@ async function refreshOnly() {
 
 /**
  * 쿠팡 Ads 탭 새로고침 → 쿠키 추출 → Slack 전송을 순서대로 실행한다.
- * 대상 탭이나 쿠키가 없으면 전송을 중단한다. 로그인 유효성은 별도로 검증하지 않는다.
+ * 대상 탭, 로그인 완료 또는 쿠키를 확인하지 못하면 전송을 중단한다.
  * 결과는 storage의 lastRun 키에 저장된다.
  * @returns {Promise<{ timestamp: string, success: boolean, error: string|null, cookieCount: number }>} 실행 로그
  */
