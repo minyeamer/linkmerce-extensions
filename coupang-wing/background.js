@@ -115,8 +115,25 @@ async function clickCoupangElement(tabId, selector) {
  * @returns {Promise<boolean>} 작업 성공 여부
  */
 async function withAuthenticatedCoupangTab(task) {
-  const tab = await chrome.tabs.create({ url: `https://${TARGET_HOST}/`, active: true });
-  await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
+  async function openWingTab() {
+    const newTab = await chrome.tabs.create({ url: `https://${TARGET_HOST}/`, active: true });
+    await chrome.windows.update(newTab.windowId, { focused: true }).catch(() => {});
+    return newTab;
+  }
+
+  let tab = await openWingTab();
+
+  function isWingRoot(url) {
+    try {
+      const pageUrl = new URL(url);
+      return pageUrl.origin === `https://${TARGET_HOST}`
+        && pageUrl.pathname === '/'
+        && !pageUrl.search
+        && !pageUrl.hash;
+    } catch {
+      return false;
+    }
+  }
 
   async function inspectLoginPage() {
     const [result] = await chrome.scripting.executeScript({
@@ -171,6 +188,26 @@ async function withAuthenticatedCoupangTab(task) {
     throw new Error(lastInspectError ? `${message} 마지막 검사 오류: ${lastInspectError.message}` : message);
   }
 
+  async function navigateBackToWingRoot(state) {
+    if (isWingRoot(state.url)) return state;
+
+    console.log(`[BG] Non-root Coupang page detected (${state.url}); navigating back to Wing root.`);
+    await chrome.tabs.update(tab.id, { url: `https://${TARGET_HOST}/` });
+    const rootState = await waitForPageState(
+      () => true,
+      25_000,
+      'Wing 루트로 다시 이동했지만 페이지 확인에 실패했습니다.'
+    );
+    if (!isWingRoot(rootState.url)) {
+      throw new Error(`Wing 루트로 다시 이동했지만 다른 페이지가 열렸습니다. (${rootState.url})`);
+    }
+    if (rootState.loginButton) {
+      throw new Error('Wing 루트로 다시 이동한 뒤에도 로그인 화면이 나타났습니다.');
+    }
+    console.log(`[BG] Wing root loaded with the login form absent (${rootState.url}).`);
+    return rootState;
+  }
+
   try {
     let initialState = await waitForPageState(
       () => true,
@@ -202,6 +239,7 @@ async function withAuthenticatedCoupangTab(task) {
       }
       if (!initialState.loginButton) {
         // The user or browser completed login while the form was settling.
+        initialState = await navigateBackToWingRoot(initialState);
         return await task(tab);
       }
       if (!initialState.usernamePresent || !initialState.passwordPresent) {
@@ -212,7 +250,7 @@ async function withAuthenticatedCoupangTab(task) {
       if (!clickResult.clicked) {
         throw new Error(`로그인 버튼을 누르지 못했습니다: ${clickResult.reason || '브라우저 입력 실패'}`);
       }
-      const loginResult = await waitForPageState(
+      let loginResult = await waitForPageState(
         state => !state.loginButton || Boolean(state.loginError),
         25_000,
         '로그인 버튼을 눌렀지만 25초 안에 로그인 완료를 확인하지 못했습니다.'
@@ -221,9 +259,11 @@ async function withAuthenticatedCoupangTab(task) {
         const autofillState = `자동완성 입력값 감지=${initialState.usernamePresent}/${initialState.passwordPresent}`;
         throw new Error(`${loginResult.loginError || 'Coupang did not complete the login.'} (${autofillState})`);
       }
-      console.log('[BG] Login form disappeared; continuing in the same task tab.');
+      loginResult = await navigateBackToWingRoot(loginResult);
+      console.log('[BG] Login form disappeared; continuing after login verification.');
     } else {
       console.log('[BG] #kc-login is absent; continuing as an authenticated session.');
+      initialState = await navigateBackToWingRoot(initialState);
     }
 
     return await task(tab);

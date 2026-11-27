@@ -10,6 +10,7 @@ const slackToken = $('slackToken');
 const slackChannel = $('slackChannel');
 const slackFilename = $('slackFilename');
 const statusBadge = $('statusBadge');
+const versionLabel = document.querySelector('.subtitle');
 
 // 전송 스케줄
 const sendScheduleEnabled = $('sendScheduleEnabled');
@@ -100,6 +101,7 @@ function setBadge(text, color) {
 
 // 초기화
 document.addEventListener('DOMContentLoaded', async () => {
+  versionLabel.textContent = `v${chrome.runtime.getManifest().version}`;
   const [slackRes, sendRes, refreshRes, lastRunRes, lastRefreshRes] = await Promise.all([
     chrome.runtime.sendMessage({ action: 'getSlackConfig' }),
     chrome.runtime.sendMessage({ action: 'getSendScheduleConfig' }),
