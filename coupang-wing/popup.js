@@ -100,11 +100,12 @@ function setBadge(text, color) {
 
 // 초기화
 document.addEventListener('DOMContentLoaded', async () => {
-  const [slackRes, sendRes, refreshRes, lastRunRes] = await Promise.all([
+  const [slackRes, sendRes, refreshRes, lastRunRes, lastRefreshRes] = await Promise.all([
     chrome.runtime.sendMessage({ action: 'getSlackConfig' }),
     chrome.runtime.sendMessage({ action: 'getSendScheduleConfig' }),
     chrome.runtime.sendMessage({ action: 'getRefreshScheduleConfig' }),
     chrome.runtime.sendMessage({ action: 'getLastRun' }),
+    chrome.runtime.sendMessage({ action: 'getLastRefresh' }),
   ]);
 
   if (slackRes?.config) {
@@ -134,7 +135,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateRefreshIntervalCron();
   }
 
-  if (lastRunRes?.data) showLastRun(lastRunRes.data);
+  const latestRun = [lastRunRes?.data, lastRefreshRes?.data]
+    .filter(Boolean)
+    .sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')))[0];
+  if (latestRun) showLastRun(latestRun);
 
   await refreshAlarmDisplay();
 });
@@ -336,48 +340,54 @@ async function refreshAlarmDisplay() {
 // 수동 전송
 sendBtn.addEventListener('click', async () => {
   sendBtn.disabled = true;
-  sendBtn.textContent = '⏳ 추출 중...';
-  setBadge('실행중', 'orange');
+  sendBtn.textContent = '\u23f3 \ucd94\ucd9c \uc911...';
+  setBadge('\uc2e4\ud589 \uc911', 'orange');
 
-  const res = await chrome.runtime.sendMessage({ action: 'extractAndSend' });
-
-  sendBtn.disabled = false;
-  sendBtn.textContent = '🚀 추출 & 전송';
-
-  if (res.success) {
-    setBadge('완료', 'green');
-    showLastRun(res.data);
-  } else {
-    setBadge('실패', 'red');
-    showLastRun({ success: false, error: res.error, timestamp: new Date().toLocaleString('ko-KR') });
+  try {
+    const res = await chrome.runtime.sendMessage({ action: 'extractAndSend' });
+    if (res?.success) {
+      setBadge('\uc644\ub8cc', 'green');
+      showLastRun(res.data);
+    } else {
+      setBadge('\uc2e4\ud328', 'red');
+      showLastRun({ success: false, error: res?.error || '\uc791\uc5c5 \uc751\ub2f5\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.', timestamp: new Date().toLocaleString('ko-KR') });
+    }
+  } catch (e) {
+    setBadge('\uc2e4\ud328', 'red');
+    showLastRun({ success: false, error: e.message, timestamp: new Date().toLocaleString('ko-KR') });
+  } finally {
+    sendBtn.disabled = false;
+    sendBtn.textContent = '\u{1F680} \ucd94\ucd9c & \uc804\uc1a1';
   }
 });
 
-// 수동 새로고침
 refreshBtn.addEventListener('click', async () => {
   refreshBtn.disabled = true;
-  refreshBtn.textContent = '⏳ 새로고침 중...';
-  setBadge('새로고침', 'orange');
+  refreshBtn.textContent = '\u23f3 \uc0c8\ub85c\uace0\uce68 \uc911...';
+  setBadge('\uc0c8\ub85c\uace0\uce68', 'orange');
 
-  const res = await chrome.runtime.sendMessage({ action: 'refreshOnly' });
-
-  refreshBtn.disabled = false;
-  refreshBtn.textContent = '🔄 새로고침만';
-
-  if (res.success) {
-    setBadge('완료', 'green');
-    showLastRun({
-      success: true, type: 'refresh',
-      timestamp: res.data?.timestamp,
-      message: res.data?.tabFound ? '탭 새로고침 완료' : '열린 쿠팡 Wing 탭 없음',
-    });
-  } else {
-    setBadge('실패', 'red');
-    showLastRun({ success: false, error: res.error, timestamp: new Date().toLocaleString('ko-KR') });
+  try {
+    const res = await chrome.runtime.sendMessage({ action: 'refreshOnly' });
+    if (res?.success) {
+      setBadge('\uc644\ub8cc', 'green');
+      showLastRun({
+        success: true, type: 'refresh',
+        timestamp: res.data?.timestamp,
+        message: res.data?.tabFound ? '\ub85c\uadf8\uc778 \ud655\uc778 \ubc0f \uc0c8\ub85c\uace0\uce68 \uc644\ub8cc' : '\uc791\uc5c5 \ud0ed\uc744 \ucc3e\uc9c0 \ubabb\ud568',
+      });
+    } else {
+      setBadge('\uc2e4\ud328', 'red');
+      showLastRun({ success: false, error: res?.error || '\uc791\uc5c5 \uc751\ub2f5\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.', timestamp: new Date().toLocaleString('ko-KR') });
+    }
+  } catch (e) {
+    setBadge('\uc2e4\ud328', 'red');
+    showLastRun({ success: false, error: e.message, timestamp: new Date().toLocaleString('ko-KR') });
+  } finally {
+    refreshBtn.disabled = false;
+    refreshBtn.textContent = '\u{1F504} \uc0c8\ub85c\uace0\uce68\ub9cc';
   }
 });
 
-// 설정 내보내기
 exportConfigBtn.addEventListener('click', async () => {
   try {
     const res = await chrome.runtime.sendMessage({ action: 'getAllSettings' });
@@ -460,11 +470,16 @@ importConfigInput.addEventListener('change', async (e) => {
 function showLastRun(run) {
   if (!run) return;
   lastRunStatus.style.display = 'block';
+  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[char]);
 
   if (run.type === 'refresh') {
+    const statusClass = run.success ? 'status-success' : 'status-error';
+    const message = run.success ? (run.message || '로그인 확인 및 새로고침 완료') : (run.error || '새로고침 실패');
     lastRunStatus.innerHTML =
-      `<span class="label">마지막 새로고침:</span> <span class="status-success">✅ ${run.message || '완료'}</span><br>`
-      + `<span class="text-muted">${run.timestamp || ''}</span>`;
+      `<span class="label">마지막 새로고침:</span> <span class="${statusClass}">${escapeHtml(message)}</span><br>`
+      + `<span class="text-muted">${escapeHtml(run.timestamp || '')}</span>`;
     return;
   }
 

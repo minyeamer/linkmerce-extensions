@@ -112,11 +112,18 @@ async function processDir(srcDir, destDir) {
 
     if (ext === '.js') {
       const src = fs.readFileSync(srcPath, 'utf8');
-      const result = JavaScriptObfuscator.obfuscate(src, JS_OBFUSCATOR_OPTIONS);
-      fs.writeFileSync(destPath, result.getObfuscatedCode(), 'utf8');
+      // Chrome serializes scripting.executeScript({ func }) callbacks and runs them
+      // in the page's isolated world. Obfuscator helpers referenced by transformed
+      // callbacks only exist in the service worker, so those injected functions
+      // fail at runtime. Keep this extension's worker self-contained and executable.
+      const relativePath = path.relative(ROOT, srcPath).replace(/\\/g, '/');
+      const output = relativePath === 'coupang-wing/background.js'
+        ? src
+        : JavaScriptObfuscator.obfuscate(src, JS_OBFUSCATOR_OPTIONS).getObfuscatedCode();
+      fs.writeFileSync(destPath, output, 'utf8');
       const srcSz = Buffer.byteLength(src, 'utf8');
-      const destSz = Buffer.byteLength(result.getObfuscatedCode(), 'utf8');
-      console.log(`  [JS]   ${entry.name}: ${kb(srcSz)} → ${kb(destSz)}`);
+      const destSz = Buffer.byteLength(output, 'utf8');
+      console.log(`  [JS]   ${entry.name}: ${kb(srcSz)} → ${kb(destSz)}${relativePath === 'coupang-wing/background.js' ? ' (executeScript 콜백 보존)' : ''}`);
     } else if (ext === '.html') {
       const src = fs.readFileSync(srcPath, 'utf8');
       const out = await minifyHtml(src, {

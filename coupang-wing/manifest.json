@@ -1,18 +1,21 @@
 {
   "manifest_version": 3,
   "name": "쿠팡 Wing 쿠키 업데이트",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "쿠팡 Wing 탭을 주기적으로 새로고침하고 쿠키를 Slack 채널에 전송합니다",
   "permissions": [
     "cookies",
     "alarms",
     "storage",
-    "tabs"
+    "tabs",
+    "scripting",
+    "debugger"
   ],
   "host_permissions": [
     "https://wing.coupang.com/*",
     "https://slack.com/*",
-    "https://files.slack.com/*"
+    "https://files.slack.com/*",
+    "https://xauth.coupang.com/*"
   ],
   "background": {
     "service_worker": "background.js"

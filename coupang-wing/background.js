@@ -68,38 +68,176 @@ async function extractCoupangCookies() {
 }
 
 /**
- * 열린 쿠팡 Wing 탭을 새로고침하고 로딩 완료를 기다립니다. (최대 30초)
- * 열린 쿠팡 Wing 탭이 없으면 false를 반환한다.
- * @returns {Promise<boolean>} 새로고침 성공 여부
+ * Dispatch one browser-level click to an element in the temporary Coupang tab.
+ * This lets Chrome's native password autofill participate in the same click
+ * flow as a real mouse action. Coordinates are read in the page viewport, so
+ * desktop window size and position do not affect the target.
+ * @param {number} tabId
+ * @param {string} selector
+ * @returns {Promise<{ clicked: boolean, reason?: string }>}
  */
-async function refreshCoupangTab() {
-  const tabs = await chrome.tabs.query({ url: [`https://${TARGET_HOST}/*`] });
-  if (!tabs.length) return false;
-
-  const tab = tabs[0];
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      chrome.tabs.onUpdated.removeListener(listener);
-      reject(new Error('탭 새로고침 시간이 초과되었습니다.'));
-    }, 30_000);
-
-    function listener(tabId, info) {
-      if (tabId === tab.id && info.status === 'complete') {
-        chrome.tabs.onUpdated.removeListener(listener);
-        clearTimeout(timeout);
-        setTimeout(() => resolve(true), 2000);
-      }
+async function clickCoupangElement(tabId, selector) {
+  const target = { tabId };
+  let attached = false;
+  try {
+    await chrome.debugger.attach(target, '1.3');
+    attached = true;
+    const expression = `(() => {
+      const element = document.querySelector(${JSON.stringify(selector)});
+      if (!element || element.disabled) return null;
+      const rect = element.getBoundingClientRect();
+      if (!rect.width || !rect.height) return null;
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    })()`;
+    const evaluated = await chrome.debugger.sendCommand(target, 'Runtime.evaluate', {
+      expression,
+      returnByValue: true,
+    });
+    const point = evaluated?.result?.value;
+    if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+      return { clicked: false, reason: 'button-not-visible' };
     }
 
-    chrome.tabs.onUpdated.addListener(listener);
-    chrome.tabs.reload(tab.id).catch(error => {
-      chrome.tabs.onUpdated.removeListener(listener);
-      clearTimeout(timeout);
-      reject(error);
+    await chrome.debugger.sendCommand(target, 'Input.dispatchMouseEvent', {
+      type: 'mousePressed', x: point.x, y: point.y, button: 'left', clickCount: 1,
     });
-  });
+    await chrome.debugger.sendCommand(target, 'Input.dispatchMouseEvent', {
+      type: 'mouseReleased', x: point.x, y: point.y, button: 'left', clickCount: 1,
+    });
+    return { clicked: true };
+  } finally {
+    if (attached) await chrome.debugger.detach(target).catch(() => {});
+  }
 }
 
+/**
+ * 작업용 새 탭에서 로그인 상태를 확인하고 필요한 경우 저장된 자동완성 값으로 로그인한다.
+ * @returns {Promise<boolean>} 작업 성공 여부
+ */
+async function withAuthenticatedCoupangTab(task) {
+  const tab = await chrome.tabs.create({ url: `https://${TARGET_HOST}/`, active: true });
+  await chrome.windows.update(tab.windowId, { focused: true }).catch(() => {});
+
+  async function inspectLoginPage() {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => ({
+        ready: document.readyState === 'complete',
+        url: location.href,
+        title: document.title,
+        loginButton: Boolean(document.querySelector('#kc-login')),
+        usernamePresent: Boolean(document.querySelector('#username')?.value?.trim()),
+        passwordPresent: Boolean(document.querySelector('#password')?.value),
+        loginButtonDisabled: Boolean(document.querySelector('#kc-login')?.disabled),
+        loginError: document.querySelector('[role="alert"], .alert-error, .kc-feedback-text')?.textContent?.trim() || '',
+        bodyText: document.body?.innerText?.slice(0, 500) || '',
+      }),
+    });
+    if (!result?.result) throw new Error('Coupang 탭의 페이지 상태를 읽을 수 없습니다.');
+    return result.result;
+  }
+
+  async function waitForPageState(predicate, timeoutMs, message) {
+    const deadline = Date.now() + timeoutMs;
+    let inspectFailureSince = 0;
+    let lastInspectError = null;
+    while (Date.now() < deadline) {
+      let currentTab;
+      try {
+        currentTab = await chrome.tabs.get(tab.id);
+      } catch {
+        throw new Error('The Coupang task tab was closed before the operation finished.');
+      }
+      let state = null;
+      if (currentTab.status === 'complete') {
+        try {
+          state = await inspectLoginPage();
+          inspectFailureSince = 0;
+          lastInspectError = null;
+        } catch (error) {
+          // Redirects between Wing and xauth can briefly invalidate an injection.
+          // Retry that race, but fail quickly with the actual browser error if it persists.
+          if (!inspectFailureSince) inspectFailureSince = Date.now();
+          lastInspectError = error;
+          if (Date.now() - inspectFailureSince >= 5_000) {
+            const latestTab = await chrome.tabs.get(tab.id).catch(() => null);
+            throw new Error(`쿠팡 페이지 검사 실패 (${latestTab?.url || 'URL 확인 불가'}): ${error.message}`);
+          }
+        }
+      }
+      if (state?.ready && predicate(state)) return state;
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    throw new Error(lastInspectError ? `${message} 마지막 검사 오류: ${lastInspectError.message}` : message);
+  }
+
+  try {
+    let initialState = await waitForPageState(
+      () => true,
+      25_000,
+      '쿠팡 탭이 25초 안에 로드되지 않았습니다.'
+    );
+    // The login form is the source of truth. Do not infer login state from a
+    // hostname: Wing redirects logged-out sessions to xauth, and redirects can
+    // change while this temporary tab is loading.
+    if (initialState.loginButton) {
+      if (initialState.loginButtonDisabled) {
+        throw new Error('로그인 페이지는 확인했지만 로그인 버튼이 비활성 상태입니다.');
+      }
+
+      // Chrome's password manager does not treat HTMLElement.focus() as a
+      // user gesture. Click the username field through browser input first,
+      // just as when opening the page manually, so native autofill can run.
+      const usernameClick = await clickCoupangElement(tab.id, '#username');
+      if (!usernameClick.clicked) {
+        throw new Error(`로그인 아이디 입력란에 포커스하지 못했습니다. ${usernameClick.reason || ''}`.trim());
+      }
+
+      const autofillDeadline = Date.now() + 10_000;
+      while (Date.now() < autofillDeadline) {
+        const latestState = await inspectLoginPage();
+        initialState = latestState;
+        if (!latestState.loginButton || (latestState.usernamePresent && latestState.passwordPresent)) break;
+        await new Promise(resolve => setTimeout(resolve, 250));
+      }
+      if (!initialState.loginButton) {
+        // The user or browser completed login while the form was settling.
+        return await task(tab);
+      }
+      if (!initialState.usernamePresent || !initialState.passwordPresent) {
+        throw new Error(`Chrome 자동완성이 아이디/비밀번호를 채우지 않아 로그인 제출을 중단했습니다. (감지=${initialState.usernamePresent}/${initialState.passwordPresent})`);
+      }
+      console.log(`[BG] Login form detected; dispatching one browser-level #kc-login click (DOM autofill visible=${initialState.usernamePresent}/${initialState.passwordPresent}).`);
+      const clickResult = await clickCoupangElement(tab.id, '#kc-login');
+      if (!clickResult.clicked) {
+        throw new Error(`로그인 버튼을 누르지 못했습니다: ${clickResult.reason || '브라우저 입력 실패'}`);
+      }
+      const loginResult = await waitForPageState(
+        state => !state.loginButton || Boolean(state.loginError),
+        25_000,
+        '로그인 버튼을 눌렀지만 25초 안에 로그인 완료를 확인하지 못했습니다.'
+      );
+      if (loginResult.loginButton) {
+        const autofillState = `자동완성 입력값 감지=${initialState.usernamePresent}/${initialState.passwordPresent}`;
+        throw new Error(`${loginResult.loginError || 'Coupang did not complete the login.'} (${autofillState})`);
+      }
+      console.log('[BG] Login form disappeared; continuing in the same task tab.');
+    } else {
+      console.log('[BG] #kc-login is absent; continuing as an authenticated session.');
+    }
+
+    return await task(tab);
+  } finally {
+    await chrome.tabs.remove(tab.id).catch(() => {});
+  }
+}
+
+async function refreshCoupangTab() {
+  return withAuthenticatedCoupangTab(async () => {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return true;
+  });
+}
 /**
  * Slack Files API (v2) 2단계 방식으로 텍스트 파일을 채널에 업로드한다.
  * @param {string}      token          - Slack Bot Token (xoxb-...)
@@ -177,7 +315,7 @@ async function refreshOnly() {
   };
   try {
     log.tabFound = await refreshCoupangTab();
-    log.success = true;
+    log.success = log.tabFound;
   } catch (e) {
     log.error = e.message;
     throw e;
@@ -202,18 +340,16 @@ async function extractAndSend() {
   };
 
   try {
-    if (!await refreshCoupangTab()) {
-      throw new Error('열린 쿠팡 Wing 탭이 없습니다. https://wing.coupang.com/ 탭을 열어주세요.');
-    }
+    await withAuthenticatedCoupangTab(async () => {
+      const cookieString = await extractCoupangCookies();
+      if (!cookieString) {
+        throw new Error('No Coupang Wing cookies were found after login verification.');
+      }
 
-    const cookieString = await extractCoupangCookies();
-    if (!cookieString) {
-      throw new Error('쿠팡 Wing 쿠키를 찾을 수 없습니다. 쿠팡 Wing에 로그인되어 있는지 확인하세요.');
-    }
-
-    log.cookieCount = cookieString.split('; ').length;
-    await sendCookiesToSlack(cookieString);
-    log.success = true;
+      log.cookieCount = cookieString.split('; ').length;
+      await sendCookiesToSlack(cookieString);
+      log.success = true;
+    });
   } catch (e) {
     log.error = e.message;
     throw e;
@@ -223,7 +359,6 @@ async function extractAndSend() {
 
   return log;
 }
-
 /**
  * 기준 시각의 초까지 반영하여 다음 실행 시각을 계산한다.
  * @param {number} minutes - 반복 간격 (분)
