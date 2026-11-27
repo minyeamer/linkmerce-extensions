@@ -1,8 +1,8 @@
 /**
- * 쿠팡 Wing 쿠키 업데이트
+ * Coupang Cookies
  *
  * 역할:
- *  - 쿠팡 Wing 탭 새로고침 → wing.coupang.com 쿠키 추출 → Slack 파일 업로드
+ *  - Wing 로그인 → 광고센터 목표 페이지 검증 → Wing/Ads 쿠키를 별도 Slack 채널에 업로드
  *  - 두 가지 독립 스케줄:
  *      - ALARM_SEND: 새로고침 + 추출 + Slack 전송 (간격 또는 시각 모드)
  *      - ALARM_REFRESH: Slack 전송 없이 새로고침만 (간격 모드, 세션 유지용)
@@ -15,10 +15,13 @@
 
 'use strict';
 
-const TARGET_HOST = 'wing.coupang.com';
+const WING_HOST = 'wing.coupang.com';
+const ADS_HOST = 'advertising.coupang.com';
+const ADS_RELAY_URL = 'https://advertising.coupang.com/relay/wing/home?from=WING_LNB';
+const ADS_DASHBOARD_URL = 'https://advertising.coupang.com/marketing/dashboard/sales?off_site_source=wing.lnb.ads_center';
 
-const ALARM_SEND = 'coupang-wing-send';
-const ALARM_REFRESH = 'coupang-wing-refresh';
+const ALARM_SEND = 'coupang-cookies-send';
+const ALARM_REFRESH = 'coupang-cookies-refresh';
 
 /**
  * 숫자를 2자리 문자열로 패딩한다.
@@ -43,12 +46,12 @@ function formatTimestamp(date) {
  * 쿠키가 없으면 null을 반환한다.
  * @returns {Promise<string|null>} 쿠키 문자열, 또는 쿠키가 없으면 null
  */
-async function extractCoupangCookies() {
+async function extractCoupangCookies(targetHost) {
   // 공통 부모 도메인 쿠키와 서비스 전용 쿠키만 포함한다.
   const allCookies = await chrome.cookies.getAll({ domain: 'coupang.com' });
   const cookies = allCookies.filter(cookie => {
     const domain = cookie.domain.replace(/^\./, '');
-    return domain === TARGET_HOST || (!cookie.hostOnly && TARGET_HOST.endsWith('.' + domain));
+    return domain === targetHost || (!cookie.hostOnly && targetHost.endsWith('.' + domain));
   });
   // 같은 이름이면 서비스 전용 도메인, 더 구체적인 경로를 우선한다.
   cookies.sort((a, b) => b.domain.length - a.domain.length || b.path.length - a.path.length);
@@ -116,7 +119,7 @@ async function clickCoupangElement(tabId, selector) {
  */
 async function withAuthenticatedCoupangTab(task) {
   async function openWingTab() {
-    const newTab = await chrome.tabs.create({ url: `https://${TARGET_HOST}/`, active: true });
+    const newTab = await chrome.tabs.create({ url: `https://${WING_HOST}/`, active: true });
     await chrome.windows.update(newTab.windowId, { focused: true }).catch(() => {});
     return newTab;
   }
@@ -126,7 +129,7 @@ async function withAuthenticatedCoupangTab(task) {
   function isWingRoot(url) {
     try {
       const pageUrl = new URL(url);
-      return pageUrl.origin === `https://${TARGET_HOST}`
+      return pageUrl.origin === `https://${WING_HOST}`
         && pageUrl.pathname === '/'
         && !pageUrl.search
         && !pageUrl.hash;
@@ -192,7 +195,7 @@ async function withAuthenticatedCoupangTab(task) {
     if (isWingRoot(state.url)) return state;
 
     console.log(`[BG] Non-root Coupang page detected (${state.url}); navigating back to Wing root.`);
-    await chrome.tabs.update(tab.id, { url: `https://${TARGET_HOST}/` });
+    await chrome.tabs.update(tab.id, { url: `https://${WING_HOST}/` });
     const rootState = await waitForPageState(
       () => true,
       25_000,
@@ -272,11 +275,180 @@ async function withAuthenticatedCoupangTab(task) {
   }
 }
 
-async function refreshCoupangTab() {
-  return withAuthenticatedCoupangTab(async () => {
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    return true;
-  });
+/**
+ * Wing의 좌측 메뉴를 통해 광고센터 릴레이에 진입한 뒤 목표 대시보드 URL을 검증한다.
+ * @param {number} wingTabId
+ * @returns {Promise<{ tab: chrome.tabs.Tab, url: string }>}
+ */
+async function openVerifiedAdsDashboard(wingTabId) {
+  const beforeTabs = await chrome.tabs.query({});
+  const beforeIds = new Set(beforeTabs.map(tab => tab.id));
+  const linkSelector = `a[href="${ADS_RELAY_URL}"]`;
+  let clickResult = { clicked: false, reason: 'click-not-attempted' };
+  try {
+    clickResult = await clickCoupangElement(wingTabId, linkSelector);
+  } catch (error) {
+    clickResult.reason = error.message;
+  }
+  let adsTab = null;
+
+  if (clickResult.clicked) {
+    const tabDeadline = Date.now() + 12_000;
+    while (Date.now() < tabDeadline) {
+      const tabs = await chrome.tabs.query({});
+      adsTab = tabs.find(candidate => !beforeIds.has(candidate.id)
+        && /^https:\/\/(advertising\.coupang\.com|xauth\.coupang\.com)\//.test(candidate.url || '')) || null;
+      if (adsTab) break;
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+  } else {
+    console.warn(`[BG] Wing Ads link click unavailable (${clickResult.reason || 'link not found'}); opening Ads directly.`);
+  }
+
+  if (!adsTab) {
+    console.warn('[BG] Wing did not open an Ads tab; opening the requested dashboard URL directly.');
+    adsTab = await chrome.tabs.create({ url: ADS_DASHBOARD_URL, active: true });
+  }
+
+  try {
+    await waitForTabComplete(adsTab.id, 30_000);
+    await new Promise(resolve => setTimeout(resolve, 1_500));
+
+    async function inspectAdsPage() {
+      const [pageCheck] = await chrome.scripting.executeScript({
+        target: { tabId: adsTab.id },
+        func: () => ({
+          url: location.href,
+          title: document.title,
+          bodyText: document.body?.innerText?.slice(0, 2000) || '',
+          hasWingLoginLink: Boolean(document.querySelector('a[href^="/user/login?_cap_client=WING"]')),
+          hasLoginForm: Boolean(document.querySelector('#kc-login, input[type="password"]')),
+        }),
+      });
+      if (!pageCheck?.result) throw new Error('광고센터 페이지 상태를 읽지 못했습니다.');
+      return pageCheck.result;
+    }
+
+    async function clickWingLoginLink(page) {
+      if (!page.hasWingLoginLink) return page;
+      const currentUrl = page.url;
+      let loginClick = { clicked: false, reason: 'click-not-attempted' };
+      try {
+        loginClick = await clickCoupangElement(adsTab.id, 'a[href^="/user/login?_cap_client=WING"]');
+      } catch (error) {
+        loginClick.reason = error.message;
+      }
+      if (!loginClick.clicked) {
+        const [linkResult] = await chrome.scripting.executeScript({
+          target: { tabId: adsTab.id },
+          func: () => document.querySelector('a[href^="/user/login?_cap_client=WING"]')?.getAttribute('href') || '',
+        });
+        const href = linkResult?.result;
+        if (!href) {
+          throw new Error(`광고센터의 Wing 로그인 링크를 클릭하지 못했습니다. (${loginClick.reason || '링크를 찾을 수 없음'})`);
+        }
+        const loginUrl = new URL(href, currentUrl).href;
+        console.warn(`[BG] Wing login link could not be clicked (${loginClick.reason}); navigating to its URL.`);
+        await chrome.tabs.update(adsTab.id, { url: loginUrl });
+      }
+      const changedTab = await waitForTabUrlChange(adsTab.id, currentUrl, 30_000);
+      adsTab = changedTab;
+      await new Promise(resolve => setTimeout(resolve, 1_500));
+      return inspectAdsPage();
+    }
+
+    function isDeniedOrLogin(page) {
+      return page.hasLoginForm
+        || /\baccess\s+denied\b|쿠팡\s*광고센터\s*로그인/i.test(`${page.title}\n${page.bodyText}`);
+    }
+
+    let page = await inspectAdsPage();
+    if (isDeniedOrLogin(page) && !page.hasWingLoginLink) {
+      throw new Error('광고센터에서 Access Denied 또는 Wing 로그인 링크가 없는 로그인 화면이 표시됩니다.');
+    }
+
+    // The direct URL fallback can land on Ads' three-choice login page.
+    if (page.hasWingLoginLink) page = await clickWingLoginLink(page);
+    if (isDeniedOrLogin(page) && !page.hasWingLoginLink) {
+      throw new Error('광고센터 목표 URL은 열렸지만 Access Denied 또는 로그인 화면이 표시됩니다.');
+    }
+
+    // The relay or Wing SSO may choose a different landing path. Always finish
+    // at the explicitly requested dashboard URL and verify the resulting page.
+    let currentTab = await chrome.tabs.get(adsTab.id);
+    if (currentTab.url !== ADS_DASHBOARD_URL) {
+      console.log(`[BG] Ads redirect ended at ${currentTab.url}; navigating to the requested dashboard.`);
+      await chrome.tabs.update(adsTab.id, { url: ADS_DASHBOARD_URL });
+      await waitForTabComplete(adsTab.id, 30_000, ADS_DASHBOARD_URL, currentTab.url);
+      await new Promise(resolve => setTimeout(resolve, 1_500));
+      adsTab = await chrome.tabs.get(adsTab.id);
+      page = await inspectAdsPage();
+    }
+
+    // If opening the requested URL itself presents the Wing SSO choice, use it
+    // once, then correct the post-login landing path back to the dashboard.
+    if (page.hasWingLoginLink) {
+      page = await clickWingLoginLink(page);
+      currentTab = await chrome.tabs.get(adsTab.id);
+      if (currentTab.url !== ADS_DASHBOARD_URL) {
+        await chrome.tabs.update(adsTab.id, { url: ADS_DASHBOARD_URL });
+        await waitForTabComplete(adsTab.id, 30_000, ADS_DASHBOARD_URL, currentTab.url);
+        await new Promise(resolve => setTimeout(resolve, 1_500));
+        adsTab = await chrome.tabs.get(adsTab.id);
+        page = await inspectAdsPage();
+      }
+    }
+
+    currentTab = await chrome.tabs.get(adsTab.id);
+    if (currentTab.url !== ADS_DASHBOARD_URL || page.url !== ADS_DASHBOARD_URL) {
+      throw new Error(`광고센터 목표 페이지 도착을 확인하지 못했습니다. (${currentTab.url || page.url || 'URL 없음'})`);
+    }
+    if (isDeniedOrLogin(page)) {
+      throw new Error('광고센터 목표 URL은 열렸지만 Access Denied 또는 로그인 화면이 표시됩니다.');
+    }
+    console.log(`[BG] Ads dashboard URL verified: ${adsTab.url}`);
+    return { tab: adsTab, url: adsTab.url };
+  } catch (error) {
+    await chrome.tabs.remove(adsTab.id).catch(() => {});
+    throw error;
+  }
+}
+
+/** Wing 로그인 링크 클릭 후 Ads 탭 URL이 바뀌고 로딩이 끝날 때까지 기다린다. */
+async function waitForTabUrlChange(tabId, previousUrl, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const current = await chrome.tabs.get(tabId).catch(() => null);
+    if (!current) throw new Error('광고센터 로그인 중 Ads 탭이 닫혔습니다.');
+    let hostname = '';
+    let pathname = '';
+    try {
+      const currentUrl = new URL(current.url);
+      hostname = currentUrl.hostname;
+      pathname = currentUrl.pathname;
+    } catch {}
+    const stillOnLoginRoute = /^\/user\/login(?:\/|$)/.test(pathname);
+    if (hostname === ADS_HOST && current.url !== previousUrl && current.status === 'complete' && !stillOnLoginRoute) return current;
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+  throw new Error('Wing 세션을 사용한 광고센터 로그인을 확인하지 못했습니다.');
+}
+
+/** 지정 탭의 다음 로딩 완료를 기다린다. */
+async function waitForTabComplete(tabId, timeoutMs, expectedUrl = '', previousUrl = '') {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const current = await chrome.tabs.get(tabId).catch(() => null);
+    if (!current) throw new Error('광고센터 작업 탭이 이동 중 닫혔습니다.');
+    let hostname = '';
+    try { hostname = new URL(current.url).hostname; } catch {}
+    const navigationSettled = !expectedUrl
+      || current.url === expectedUrl
+      || (previousUrl && current.url !== previousUrl);
+    if (hostname === ADS_HOST && current.status === 'complete' && navigationSettled) return current;
+    await new Promise(resolve => setTimeout(resolve, 250));
+  }
+  throw new Error('쿠팡 광고센터 페이지 로딩 시간이 초과되었습니다.');
 }
 /**
  * Slack Files API (v2) 2단계 방식으로 텍스트 파일을 채널에 업로드한다.
@@ -327,17 +499,30 @@ async function uploadFileToSlack(token, channel, fileBytes, fname, initialCommen
  * @param {string} cookieString - 전송할 쿠키 문자열 ('name=value; ...' 형식)
  * @returns {Promise<void>}
  */
-async function sendCookiesToSlack(cookieString) {
-  const { slackConfig } = await chrome.storage.local.get('slackConfig');
-  if (!slackConfig?.token || !slackConfig?.channel || !slackConfig?.filename) {
-    throw new Error('Slack 설정이 완료되지 않았습니다. (토큰, 채널, 파일명 필요)');
+async function sendCookiesToSlack(cookieString, service, slackConfig) {
+  const channel = service === 'wing' ? slackConfig.wingChannel : slackConfig.adsChannel;
+  const configuredFilename = service === 'wing' ? slackConfig.wingFilename : slackConfig.adsFilename;
+  const defaultFilename = service === 'wing' ? 'coupang_wing_cookies' : 'coupang_ads_cookies';
+  if (!slackConfig?.token?.trim() || !channel?.trim()) {
+    const channelName = service === 'wing' ? 'Wing' : '광고센터';
+    throw new Error(`Slack 설정이 완료되지 않았습니다. (${channelName} 채널 ID 필요)`);
   }
 
   const token = slackConfig.token.trim();
-  const channel = slackConfig.channel.trim();
-  const filename = (slackConfig.filename.trim() || 'coupang_wing') + '.txt';
+  const filename = `${(configuredFilename || '').trim() || defaultFilename}.txt`;
   const fileBytes = new TextEncoder().encode(cookieString);
-  await uploadFileToSlack(token, channel, fileBytes, filename, null);
+  await uploadFileToSlack(token, channel.trim(), fileBytes, filename, null);
+}
+
+async function getSlackConfig() {
+  const { slackConfig } = await chrome.storage.local.get('slackConfig');
+  return {
+    token: slackConfig?.token || '',
+    wingChannel: slackConfig?.wingChannel || slackConfig?.channel || '',
+    adsChannel: slackConfig?.adsChannel || '',
+    wingFilename: slackConfig?.wingFilename || slackConfig?.filename || 'coupang_wing_cookies',
+    adsFilename: slackConfig?.adsFilename || 'coupang_ads_cookies',
+  };
 }
 
 /**
@@ -354,8 +539,13 @@ async function refreshOnly() {
     error: null,
   };
   try {
-    log.tabFound = await refreshCoupangTab();
-    log.success = log.tabFound;
+    await withAuthenticatedCoupangTab(async wingTab => {
+      const result = await openVerifiedAdsDashboard(wingTab.id);
+      log.adsUrl = result.url;
+      log.success = true;
+      await chrome.tabs.remove(result.tab.id).catch(() => {});
+    });
+    log.tabFound = true;
   } catch (e) {
     log.error = e.message;
     throw e;
@@ -366,8 +556,7 @@ async function refreshOnly() {
 }
 
 /**
- * 쿠팡 Wing 탭 새로고침 → 쿠키 추출 → Slack 전송을 순서대로 실행한다.
- * 대상 탭이나 쿠키가 없으면 전송을 중단한다. 로그인 유효성은 별도로 검증하지 않는다.
+ * Wing 로그인 후 광고센터 목표 URL로 이동해 두 서비스 쿠키를 추출하고 각각 Slack에 전송한다.
  * 결과는 storage의 lastRun 키에 저장된다.
  * @returns {Promise<{ timestamp: string, success: boolean, error: string|null, cookieCount: number }>} 실행 로그
  */
@@ -377,17 +566,39 @@ async function extractAndSend() {
     success: false,
     error: null,
     cookieCount: 0,
+    wingCookieCount: 0,
+    adsCookieCount: 0,
+    adsUrl: null,
   };
 
   try {
-    await withAuthenticatedCoupangTab(async () => {
-      const cookieString = await extractCoupangCookies();
-      if (!cookieString) {
-        throw new Error('No Coupang Wing cookies were found after login verification.');
+    const slackConfig = await getSlackConfig();
+    if (!slackConfig.token.trim() || !slackConfig.wingChannel.trim() || !slackConfig.adsChannel.trim()) {
+      throw new Error('Slack 설정에 Bot Token, Wing 채널 ID, 광고센터 채널 ID를 입력하세요.');
+    }
+
+    await withAuthenticatedCoupangTab(async wingTab => {
+      const wingCookieString = await extractCoupangCookies(WING_HOST);
+      if (!wingCookieString) {
+        throw new Error('로그인 확인 후 Coupang Wing 쿠키를 찾지 못했습니다.');
       }
 
-      log.cookieCount = cookieString.split('; ').length;
-      await sendCookiesToSlack(cookieString);
+      const adsResult = await openVerifiedAdsDashboard(wingTab.id);
+      log.adsUrl = adsResult.url;
+      try {
+        const adsCookieString = await extractCoupangCookies(ADS_HOST);
+        if (!adsCookieString) {
+          throw new Error('광고센터 목표 페이지에서 쿠키를 찾지 못했습니다.');
+        }
+
+        log.wingCookieCount = wingCookieString.split('; ').length;
+        log.adsCookieCount = adsCookieString.split('; ').length;
+        log.cookieCount = log.wingCookieCount + log.adsCookieCount;
+        await sendCookiesToSlack(wingCookieString, 'wing', slackConfig);
+        await sendCookiesToSlack(adsCookieString, 'ads', slackConfig);
+      } finally {
+        await chrome.tabs.remove(adsResult.tab.id).catch(() => {});
+      }
       log.success = true;
     });
   } catch (e) {
@@ -546,8 +757,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
         }
 
         case 'getSlackConfig': {
-          const { slackConfig } = await chrome.storage.local.get('slackConfig');
-          sendResponse({ success: true, config: slackConfig || { token: '', channel: '', filename: '' } });
+          sendResponse({ success: true, config: await getSlackConfig() });
           break;
         }
 
@@ -608,7 +818,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
             settings: {
               _version: chrome.runtime.getManifest().version,
               _exportedAt: new Date().toISOString(),
-              slackConfig: stored.slackConfig || { token: '', channel: '', filename: '' },
+              slackConfig: await getSlackConfig(),
               sendScheduleConfig: stored.sendScheduleConfig || { enabled: false, mode: 'interval', intervalMinutes: 1440, baseTime: '00:00:00', times: [] },
               refreshScheduleConfig: stored.refreshScheduleConfig || { enabled: false, intervalMinutes: 30, baseTime: '00:00:00' },
             },

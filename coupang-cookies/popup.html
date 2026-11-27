@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <title>쿠팡 Ads 쿠키 업데이트</title>
+  <title>Coupang Cookies</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -11,10 +11,10 @@
     <!-- 헤더 -->
     <header class="header">
       <div class="header-left">
-        <span class="logo" aria-hidden="true">A</span>
+        <span class="logo" aria-hidden="true">C</span>
         <div>
-          <h1 class="title">쿠팡 Ads 쿠키 업데이트</h1>
-          <p class="subtitle">v0.2.0</p>
+          <h1 class="title">Coupang Cookies</h1>
+          <p class="subtitle"></p>
         </div>
       </div>
       <div id="statusBadge" class="badge">대기중</div>
@@ -32,18 +32,26 @@
 
     <!-- Slack 설정 -->
     <section class="card">
-      <span class="card-title">🔗 Slack 설정</span>
+      <span class="card-title">🔗 Slack 설정 (Bot Token은 공통)</span>
       <div class="form-group">
         <label for="slackToken">Bot Token</label>
         <input type="password" id="slackToken" placeholder="xoxb-..." autocomplete="off" spellcheck="false">
       </div>
       <div class="form-group">
-        <label for="slackChannel">Channel ID</label>
+        <label for="slackChannel">Wing 채널 ID</label>
         <input type="text" id="slackChannel" placeholder="C0XXXXXXXXX" spellcheck="false">
       </div>
       <div class="form-group">
-        <label for="slackFilename">파일명 <span class="label-suffix">.txt</span></label>
-        <input type="text" id="slackFilename" placeholder="coupang_ads_cookies" spellcheck="false">
+        <label for="slackFilename">Wing 파일명 <span class="label-suffix">.txt</span></label>
+        <input type="text" id="slackFilename" placeholder="coupang_wing_cookies" spellcheck="false">
+      </div>
+      <div class="form-group">
+        <label for="slackAdsChannel">광고센터 채널 ID</label>
+        <input type="text" id="slackAdsChannel" placeholder="C0XXXXXXXXX" spellcheck="false">
+      </div>
+      <div class="form-group">
+        <label for="slackAdsFilename">광고센터 파일명 <span class="label-suffix">.txt</span></label>
+        <input type="text" id="slackAdsFilename" placeholder="coupang_ads_cookies" spellcheck="false">
       </div>
       <p class="text-muted">Bot에 <strong>chat:write</strong>, <strong>files:write</strong> 권한이 필요합니다.</p>
     </section>
@@ -106,7 +114,7 @@
         </label>
       </div>
       <div id="refreshBody" class="mt6">
-        <p class="text-muted mb6">Slack 전송 없이 쿠팡 Ads 탭만 새로고침합니다. (세션 유지용)</p>
+        <p class="text-muted mb6">Slack 전송 없이 Wing 로그인 후 광고센터 목표 페이지까지 이동을 확인합니다.</p>
         <div class="preset-row">
           <button class="preset-btn" data-value="15">15분</button>
           <button class="preset-btn" data-value="30">30분</button>

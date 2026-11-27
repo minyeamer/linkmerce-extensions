@@ -117,13 +117,13 @@ async function processDir(srcDir, destDir) {
       // callbacks only exist in the service worker, so those injected functions
       // fail at runtime. Keep this extension's worker self-contained and executable.
       const relativePath = path.relative(ROOT, srcPath).replace(/\\/g, '/');
-      const output = relativePath === 'coupang-wing/background.js'
+      const output = relativePath === 'coupang-cookies/background.js'
         ? src
         : JavaScriptObfuscator.obfuscate(src, JS_OBFUSCATOR_OPTIONS).getObfuscatedCode();
       fs.writeFileSync(destPath, output, 'utf8');
       const srcSz = Buffer.byteLength(src, 'utf8');
       const destSz = Buffer.byteLength(output, 'utf8');
-      console.log(`  [JS]   ${entry.name}: ${kb(srcSz)} → ${kb(destSz)}${relativePath === 'coupang-wing/background.js' ? ' (executeScript 콜백 보존)' : ''}`);
+      console.log(`  [JS]   ${entry.name}: ${kb(srcSz)} → ${kb(destSz)}${relativePath === 'coupang-cookies/background.js' ? ' (executeScript 콜백 보존)' : ''}`);
     } else if (ext === '.html') {
       const src = fs.readFileSync(srcPath, 'utf8');
       const out = await minifyHtml(src, {

@@ -9,6 +9,8 @@ const lastRunStatus = $('lastRunStatus');
 const slackToken = $('slackToken');
 const slackChannel = $('slackChannel');
 const slackFilename = $('slackFilename');
+const slackAdsChannel = $('slackAdsChannel');
+const slackAdsFilename = $('slackAdsFilename');
 const statusBadge = $('statusBadge');
 const versionLabel = document.querySelector('.subtitle');
 
@@ -40,7 +42,7 @@ const importConfigBtn = $('importConfigBtn');
 const importConfigInput = $('importConfigInput');
 const configMsg = $('configMsg');
 
-let _slackConfig = { token: '', channel: '', filename: '' };
+let _slackConfig = { token: '', wingChannel: '', adsChannel: '', wingFilename: '', adsFilename: '' };
 let _sendScheduleConfig = { enabled: false, mode: 'interval', intervalMinutes: 1440, baseTime: '00:00:00', times: [] };
 let _refreshScheduleConfig = { enabled: false, intervalMinutes: 30, baseTime: '00:00:00' };
 
@@ -113,8 +115,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (slackRes?.config) {
     _slackConfig = slackRes.config;
     slackToken.value = _slackConfig.token || '';
-    slackChannel.value = _slackConfig.channel || '';
-    slackFilename.value = _slackConfig.filename || '';
+    slackChannel.value = _slackConfig.wingChannel || '';
+    slackFilename.value = _slackConfig.wingFilename || '';
+    slackAdsChannel.value = _slackConfig.adsChannel || '';
+    slackAdsFilename.value = _slackConfig.adsFilename || '';
   }
 
   if (sendRes?.config) {
@@ -302,6 +306,8 @@ async function saveRefreshScheduleConfig() {
 slackToken.addEventListener('change', saveSlackConfig);
 slackChannel.addEventListener('change', saveSlackConfig);
 slackFilename.addEventListener('change', saveSlackConfig);
+slackAdsChannel.addEventListener('change', saveSlackConfig);
+slackAdsFilename.addEventListener('change', saveSlackConfig);
 
 /**
  * Slack 설정 입력값을 storage에 저장한다.
@@ -310,8 +316,10 @@ slackFilename.addEventListener('change', saveSlackConfig);
 async function saveSlackConfig() {
   _slackConfig = {
     token: slackToken.value.trim(),
-    channel: slackChannel.value.trim(),
-    filename: slackFilename.value.trim(),
+    wingChannel: slackChannel.value.trim(),
+    adsChannel: slackAdsChannel.value.trim(),
+    wingFilename: slackFilename.value.trim(),
+    adsFilename: slackAdsFilename.value.trim(),
   };
   await chrome.runtime.sendMessage({ action: 'saveSlackConfig', config: _slackConfig });
 }
@@ -375,7 +383,8 @@ refreshBtn.addEventListener('click', async () => {
       showLastRun({
         success: true, type: 'refresh',
         timestamp: res.data?.timestamp,
-        message: res.data?.tabFound ? '\ub85c\uadf8\uc778 \ud655\uc778 \ubc0f \uc0c8\ub85c\uace0\uce68 \uc644\ub8cc' : '\uc791\uc5c5 \ud0ed\uc744 \ucc3e\uc9c0 \ubabb\ud568',
+        message: res.data?.adsUrl ? '\uad11\uace0\uc13c\ud130 \ubaa9\ud45c \ud398\uc774\uc9c0 \ub3c4\ucc29 \ud655\uc778 \uc644\ub8cc' : '\uad11\uace0\uc13c\ud130 \ubaa9\ud45c \ud398\uc774\uc9c0 \uac80\uc99d\uc5d0 \uc2e4\ud328',
+        adsUrl: res.data?.adsUrl,
       });
     } else {
       setBadge('\uc2e4\ud328', 'red');
@@ -401,7 +410,7 @@ exportConfigBtn.addEventListener('click', async () => {
     const now = new Date();
     const ts = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate())
                 + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
-    const fname = `coupang-wing-config_${ts}.json`;
+    const fname = `coupang-cookies-config_${ts}.json`;
     const a = document.createElement('a');
     a.href = url;
     a.download = fname;
@@ -428,15 +437,38 @@ importConfigInput.addEventListener('change', async (e) => {
       throw new Error('올바른 설정 파일이 아닙니다');
     }
 
+    // Ads v0.2.x exported a single Slack channel; merge it as the Ads destination.
+    if (/^0\.2\./.test(String(settings._version || '')) && settings.slackConfig?.channel) {
+      const currentRes = await chrome.runtime.sendMessage({ action: 'getSlackConfig' });
+      const current = currentRes?.config || {};
+      settings.slackConfig = {
+        token: current.token || settings.slackConfig.token || '',
+        wingChannel: current.wingChannel || '',
+        adsChannel: settings.slackConfig.channel,
+        wingFilename: current.wingFilename || '',
+        adsFilename: settings.slackConfig.filename || 'coupang_ads_cookies',
+      };
+      delete settings.sendScheduleConfig;
+      delete settings.refreshScheduleConfig;
+    }
+
     const res = await chrome.runtime.sendMessage({ action: 'setAllSettings', settings });
     if (!res?.success) throw new Error(res?.error || '설정 적용 실패');
 
     // UI 즉시 반영
     if (settings.slackConfig) {
-      _slackConfig = settings.slackConfig;
+      _slackConfig = {
+        token: settings.slackConfig.token || '',
+        wingChannel: settings.slackConfig.wingChannel || settings.slackConfig.channel || '',
+        adsChannel: settings.slackConfig.adsChannel || '',
+        wingFilename: settings.slackConfig.wingFilename || settings.slackConfig.filename || '',
+        adsFilename: settings.slackConfig.adsFilename || '',
+      };
       slackToken.value = _slackConfig.token || '';
-      slackChannel.value = _slackConfig.channel || '';
-      slackFilename.value = _slackConfig.filename || '';
+      slackChannel.value = _slackConfig.wingChannel || '';
+      slackFilename.value = _slackConfig.wingFilename || '';
+      slackAdsChannel.value = _slackConfig.adsChannel || '';
+      slackAdsFilename.value = _slackConfig.adsFilename || '';
     }
     if (settings.sendScheduleConfig) {
       _sendScheduleConfig = settings.sendScheduleConfig;
@@ -481,14 +513,14 @@ function showLastRun(run) {
     const message = run.success ? (run.message || '로그인 확인 및 새로고침 완료') : (run.error || '새로고침 실패');
     lastRunStatus.innerHTML =
       `<span class="label">마지막 새로고침:</span> <span class="${statusClass}">${escapeHtml(message)}</span><br>`
-      + `<span class="text-muted">${escapeHtml(run.timestamp || '')}</span>`;
+      + `<span class="text-muted">${escapeHtml(run.timestamp || '')}${run.adsUrl ? ` | ${escapeHtml(run.adsUrl)}` : ''}</span>`;
     return;
   }
 
   if (run.success) {
     lastRunStatus.innerHTML =
       `<span class="label">마지막 전송:</span> <span class="status-success">✅ 성공</span><br>`
-      + `<span class="text-muted">${run.timestamp} | 쿠키 ${run.cookieCount}개</span>`;
+      + `<span class="text-muted">${escapeHtml(run.timestamp)} | Wing ${run.wingCookieCount ?? 0}개 / 광고센터 ${run.adsCookieCount ?? 0}개${run.adsUrl ? ` | ${escapeHtml(run.adsUrl)}` : ''}</span>`;
   } else {
     lastRunStatus.innerHTML =
       `<span class="label">마지막 실행:</span> <span class="status-error">❌ 실패</span><br>`

@@ -6,8 +6,7 @@
 
 | 폴더 | 이름 | 설명 | 버전 |
 |------|------|------|------|
-| [`coupang-ads/`](coupang-ads/) | 쿠팡 Ads 쿠키 업데이트 | 쿠팡 광고 탭을 주기적으로 새로고침하고 쿠키를 Slack에 전송. | v0.2.0 |
-| [`coupang-wing/`](coupang-wing/) | 쿠팡 Wing 쿠키 업데이트 | Wing 탭을 주기적으로 새로고침하고 쿠키를 Slack에 전송. | v0.1.0 |
+| [`coupang-cookies/`](coupang-cookies/) | Coupang Cookies | Wing 로그인 세션으로 광고센터 목표 페이지까지 이동하고 Wing, 광고센터 쿠키를 각각 Slack에 전송. | v1.0.2 |
 | [`google-search/`](google-search/) | 구글 검색 자동화 | 여러 키워드를 순차 검색하여 결과(query, rank, title, URL, snippet)를 CSV / JSON으로 자동 수집. CAPTCHA 대기 및 이어서 수집 지원. | v0.3.1 |
 | [`naver-cookies/`](naver-cookies/) | 네이버 쿠키 업데이트 | 네이버 세션 쿠키를 주기적으로 추출하여 Slack 채널에 텍스트 파일로 업로드. Linux 서버(Airflow)에서 네이버 인증이 필요할 때 사용. | v0.2.3 |
 | [`naver-price/`](naver-price/) | 네이버 가격 검증 | 로그인된 상품 페이지의 실제 가격과 상세페이지 이미지 가격을 비교하고, 불일치 시 Slack으로 알림. | v0.4.1 |
@@ -22,8 +21,7 @@
 2. 개발자 모드 ON
 3. "압축해제된 확장프로그램을 로드합니다" 클릭
 4. 원하는 확장 프로그램 폴더 선택
-   - coupang-ads/
-   - coupang-wing/
+   - coupang-cookies/
    - google-search/
    - naver-cookies/
    - naver-price/
@@ -45,8 +43,7 @@ npm install
 폴더명을 매개변수로 지정합니다.
 
 ```bash
-node build.js coupang-ads
-node build.js coupang-wing
+node build.js coupang-cookies
 node build.js google-search
 node build.js naver-cookies
 node build.js naver-price
@@ -57,8 +54,7 @@ node build.js naver-products
 
 ```bash
 dist/
-├── coupang-ads/        # coupang-ads 빌드 결과물
-├── coupang-wing/       # coupang-wing 빌드 결과물
+├── coupang-cookies/    # Coupang Cookies 빌드 결과물
 ├── google-search/      # google-search 난독화 결과물
 ├── naver-cookies/      # naver-cookies 난독화 결과물
 ├── naver-price/        # naver-price 빌드 결과물
@@ -79,14 +75,7 @@ dist/
 
 ```bash
 linkmerce-extensions/
-├── coupang-ads/            # 쿠팡 Ads 쿠키 업데이트
-│   ├── manifest.json
-│   ├── background.js
-│   ├── content.js
-│   ├── popup.html / popup.css / popup.js
-│   ├── icons/
-│   └── README.md
-├── coupang-wing/           # 쿠팡 Wing 쿠키 업데이트
+├── coupang-cookies/        # Coupang Cookies (Wing + 광고센터)
 │   ├── manifest.json
 │   ├── background.js
 │   ├── popup.html / popup.css / popup.js
