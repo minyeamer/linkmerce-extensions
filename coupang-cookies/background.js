@@ -86,11 +86,15 @@ async function clickCoupangElement(tabId, selector) {
     await chrome.debugger.attach(target, '1.3');
     attached = true;
     const expression = `(() => {
-      const element = document.querySelector(${JSON.stringify(selector)});
-      if (!element || element.disabled) return null;
-      const rect = element.getBoundingClientRect();
-      if (!rect.width || !rect.height) return null;
-      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      const elements = [...document.querySelectorAll(${JSON.stringify(selector)})];
+      for (const element of elements) {
+        if (element.disabled) continue;
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        if (!rect.width || !rect.height || style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) continue;
+        return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      }
+      return null;
     })()`;
     const evaluated = await chrome.debugger.sendCommand(target, 'Runtime.evaluate', {
       expression,
@@ -281,6 +285,9 @@ async function withAuthenticatedCoupangTab(task) {
  * @returns {Promise<{ tab: chrome.tabs.Tab, url: string }>}
  */
 async function openVerifiedAdsDashboard(wingTabId) {
+  const dismissedDialogs = await dismissWingDialogs(wingTabId);
+  if (dismissedDialogs) console.log(`[BG] Closed ${dismissedDialogs} Wing dialog(s) before opening Ads Center.`);
+
   const beforeTabs = await chrome.tabs.query({});
   const beforeIds = new Set(beforeTabs.map(tab => tab.id));
   const linkSelector = `a[href="${ADS_RELAY_URL}"]`;
@@ -412,6 +419,116 @@ async function openVerifiedAdsDashboard(wingTabId) {
     await chrome.tabs.remove(adsTab.id).catch(() => {});
     throw error;
   }
+}
+
+/** Wing 페이지의 표시 중인 dialog 닫기 버튼을 모두 닫는다. 없으면 정상 진행한다. */
+async function dismissWingDialogs(tabId) {
+  const closeSelector = '[role="dialog"] .header-close';
+  const maxDialogs = 10;
+  const pollMs = 200;
+  const quietWindowMs = 1_000;
+  const lateDialogWaitMs = 3_000;
+  let dismissed = 0;
+
+  async function visibleCloseButtonCount(markAndClick = '') {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (selector, marker) => {
+        const visible = [...document.querySelectorAll(selector)].filter(element => {
+          const rect = element.getBoundingClientRect();
+          const style = getComputedStyle(element);
+          return rect.width > 0 && rect.height > 0
+            && style.display !== 'none'
+            && style.visibility !== 'hidden'
+            && Number(style.opacity) !== 0
+            && !element.disabled;
+        });
+        if (marker && visible[0]) {
+          visible[0].setAttribute('data-coupang-dialog-close-check', marker);
+          visible[0].click();
+        }
+        return visible.length;
+      },
+      args: [closeSelector, markAndClick],
+    });
+    if (!Number.isInteger(result?.result)) throw new Error('Could not inspect Wing dialog close buttons.');
+    return result.result;
+  }
+
+  async function isMarkedCloseButtonVisible(marker) {
+    const [result] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (selector, markerValue) => [...document.querySelectorAll(selector)].some(element => {
+        if (element.getAttribute('data-coupang-dialog-close-check') !== markerValue) return false;
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return rect.width > 0 && rect.height > 0
+          && style.display !== 'none'
+          && style.visibility !== 'hidden'
+          && Number(style.opacity) !== 0;
+      }),
+      args: [closeSelector, marker],
+    });
+    return result?.result === true;
+  }
+
+  // Wait for late overlays; proceed normally when none appears.
+  const waitDeadline = Date.now() + lateDialogWaitMs;
+  let absentSince = null;
+  while (Date.now() < waitDeadline) {
+    if (await visibleCloseButtonCount() > 0) break;
+    if (absentSince === null) absentSince = Date.now();
+    if (Date.now() - absentSince >= quietWindowMs) return dismissed;
+    await new Promise(resolve => setTimeout(resolve, pollMs));
+  }
+
+  while (dismissed < maxDialogs) {
+    const before = await visibleCloseButtonCount();
+    if (before === 0) {
+      const quietDeadline = Date.now() + quietWindowMs;
+      let stillQuiet = true;
+      while (Date.now() < quietDeadline) {
+        await new Promise(resolve => setTimeout(resolve, pollMs));
+        if (await visibleCloseButtonCount() > 0) {
+          stillQuiet = false;
+          break;
+        }
+      }
+      if (stillQuiet) return dismissed;
+      continue;
+    }
+
+    // Try the element handler, then a browser-level click if it remains visible.
+    const marker = `coupang-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    await visibleCloseButtonCount(marker);
+    let disappeared = false;
+    let verifyDeadline = Date.now() + 1_200;
+    while (Date.now() < verifyDeadline) {
+      await new Promise(resolve => setTimeout(resolve, pollMs));
+      if (!await isMarkedCloseButtonVisible(marker)) {
+        disappeared = true;
+        break;
+      }
+    }
+    if (!disappeared) {
+      const clickResult = await clickCoupangElement(tabId, closeSelector);
+      if (clickResult.clicked) {
+        verifyDeadline = Date.now() + 1_500;
+        while (Date.now() < verifyDeadline) {
+          await new Promise(resolve => setTimeout(resolve, pollMs));
+          if (!await isMarkedCloseButtonVisible(marker)) {
+            disappeared = true;
+            break;
+          }
+        }
+      }
+    }
+    if (!disappeared) throw new Error('Wing dialog close button was clicked, but the dialog is still visible.');
+    dismissed++;
+  }
+
+  if (await visibleCloseButtonCount() > 0) throw new Error(`More than ${maxDialogs} Wing dialogs appeared.`);
+  return dismissed;
 }
 
 /** Wing 로그인 링크 클릭 후 Ads 탭 URL이 바뀌고 로딩이 끝날 때까지 기다린다. */

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Coupang Cookies",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "쿠팡 Wing 로그인으로 광고센터까지 확인하고 두 서비스의 쿠키를 Slack에 전송합니다",
   "permissions": [
     "cookies",
